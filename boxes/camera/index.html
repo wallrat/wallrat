@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>G A M E</title>
+        <!-- <meta name="viewport" content="user-scalable=0, initial-scale=1.0"> -->
+        <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        <!--
+        Phone 1 – 3gs:	320 x 460 px
+        iPhone 4 – 4s:	640 x 920 px
+        iPhone 5:	640 x 1096 px
+        iPhone 6:	750 x 1294 px
+        iPhone 6 Plus:	1242 x 2148 px
+        -->
+        <!-- <link rel="apple-touch-startup-image" href="images/ios_startup.png">  -->
+        <!-- <link rel="apple-touch-startup-image" href="images/ios_startup@2x.png" sizes="640x920"> -->
+        <!-- <link rel="apple-touch-startup-image" href="images/ios_startup-large@2x.png" sizes="640x1096"> -->
+        <!-- <link rel="apple-touch-startup-image" href="images/ios_startup-6@2x.png" sizes="750x1294"> -->
+        <!-- <link rel="apple-touch-startup-image" href="images/ios_startup-6-plus@3x.png" sizes="1242x2148"> -->
+
+        <!-- http://www.websitepowerups.com/blog/2013/adding-an-icon-for-iphone-ipad-android-to-your-website/ -->
+    </head>
+    <body>
+        <!-- <div id="wrapper">
+          <main id="game">Attach game here</main>
+          <section id="console"></section>
+        </div> -->
+        <!-- TODO: there must be a better way to preload the font..  https://github.com/typekit/webfontloader -->
+        <!-- doesn't work in IOS anyway -->
+        <span class="font-pixel" style="position: absolute; left: -1000px">WAREHOUSE</span>
+
+        <script type="text/javascript" src="vendor/pixi.js" charset="utf-8"></script>
+        <script type="text/javascript" src="vendor/fpsmeter.js" charset="utf-8"></script>
+        <script type="text/javascript" src="vendor/state-machine.js" charset="utf-8"></script>
+        <script type="text/javascript" src="vendor/rot.js" charset="utf-8"></script>
+        <script type="text/javascript" src="dist/warehouse.js" charset="utf-8"></script>
+    </body>
+</html>
