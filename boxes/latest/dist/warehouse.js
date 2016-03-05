@@ -6917,9 +6917,6 @@
 	      // update player score
 	      _this.score += points;
 	
-	      // effects
-	      _this.addEffect(_screenshake2.default.create(0.3, 16));
-	
 	      // check if there are any monsters left
 	      var monstersAlive = 0;
 	      for (var i = 0; i < _this.map.monsters.length; i++) {
