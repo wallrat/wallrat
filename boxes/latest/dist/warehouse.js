@@ -7363,17 +7363,6 @@
 	  return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
 	}
 	
-	function box(color) {
-	  var sprite = new PIXI.Graphics();
-	
-	  // set a fill and a line style again and draw a rectangle
-	  sprite.lineStyle(1, color, 1);
-	  sprite.beginFill(color, 1);
-	  sprite.drawRect(1, 1, TILE_WIDTH - 2, TILE_HEIGHT - 2);
-	
-	  return sprite.generateTexture(1, PIXI.SCALE_MODES.DEFAULT);
-	}
-	
 	var updateSpritePosition = function updateSpritePosition(entity, dt) {
 	  var fps = 60;
 	  var speed = 18 * TILE_WIDTH; // pixels per second
@@ -7479,18 +7468,12 @@
 	    for (var i = 0; i < monsters.length; i++) {
 	      var monster = monsters[i];
 	
-	      var MONSTERS = {};
-	      MONSTERS[_entities.ENTITY.SNAKE] = { ch: 'S', color: 0xDF0699 };
-	      MONSTERS[_entities.ENTITY.ZOMBIE] = { ch: 'Z', color: 0x00FF44 };
-	      MONSTERS[_entities.ENTITY.GRUE] = { ch: 'G', color: 0xFF5659 };
+	      var SPRITES = {};
+	      SPRITES[_entities.ENTITY.SNAKE] = 'assets/snake_01.png';
+	      SPRITES[_entities.ENTITY.ZOMBIE] = 'assets/zombie_01.png';
+	      SPRITES[_entities.ENTITY.GRUE] = 'assets/grue_01.png';
 	
-	      var color = MONSTERS[monster.type].color;
-	      var ch = MONSTERS[monster.type].ch;
-	
-	      //monster.sprite = new PIXI.Sprite(box(color))
-	      monster.sprite = new PIXI.Text(ch, { font: '14px MiniSet2', fill: color, align: 'left' });
-	      monster.sprite.anchor.x = -0.2;
-	      monster.sprite.anchor.y = 0;
+	      monster.sprite = PIXI.Sprite.fromImage(SPRITES[monster.type]);
 	
 	      this.stage.addChild(monster.sprite);
 	      monster.sprite.position.x = monster.x * TILE_WIDTH;
@@ -7548,11 +7531,11 @@
 	      updateSpritePosition(entity, dt);
 	
 	      // TODO: layer on effect instead
-	      if (entity.isTrapped) entity.sprite.texture = box(0xFF0000);
-	      // if (entity.isTrapped) {
-	      //   entity.sprite.scale.x = 1.7
-	      //   entity.sprite.scale.y = 1.7
-	      // }
+	      if (entity.isTrapped) {
+	        if (!entity.sprite.filters) {
+	          entity.sprite.filters = [new PIXI.filters.InvertFilter()];
+	        }
+	      }
 	    }
 	
 	    // effects
@@ -7586,6 +7569,12 @@
 	      //input: this.game.input,
 	      debug: this.game.debug
 	    }, null, ' ');
+	
+	    // camera
+	    // this.stage.position.x = 240 - player.sprite.position.x - TILE_WIDTH
+	    // this.stage.position.y = 160 - player.sprite.position.y - TILE_HEIGHT
+	    // this.stage.position.x = 120 - player.sprite.position.x - TILE_WIDTH
+	    // this.stage.position.y = 80 - player.sprite.position.y - TILE_HEIGHT
 	
 	    // this is the main render call that makes pixi draw your container and its children.
 	    this.renderer.render(this.stage);
