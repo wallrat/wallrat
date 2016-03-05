@@ -7426,9 +7426,11 @@
 	    //   //roundPixels: true,
 	    //   //resolution: window.devicePixelRatio * 2
 	    // })
-	    this.renderer = new PIXI.autoDetectRenderer(960, 640, {
+	    //this.renderer = new PIXI.autoDetectRenderer(960,640,{
+	    this.renderer = new PIXI.WebGLRenderer(960, 640, {
 	      roundPixels: true,
-	      resolution: window.devicePixelRatio * 2
+	      resolution: window.devicePixelRatio * 2,
+	      antialias: false
 	    });
 	
 	    // this.renderer = new PIXI.autoDetectRenderer(
@@ -7459,8 +7461,9 @@
 	    // things
 	    for (var i = 0; i < things.length; i++) {
 	      var thing = things[i];
-	      var color = thing.isMovable ? 0xFAFA55 : 0xFFFFFF;
-	      thing.sprite = new PIXI.Sprite.fromImage('assets/box_01.png');
+	
+	      thing.sprite = thing.isMovable ? new PIXI.Sprite.fromImage('assets/box_01.png') : new PIXI.Sprite.fromImage('assets/heavy_box_01.png');
+	
 	      this.stage.addChild(thing.sprite);
 	
 	      // TODO: better handling of void/invisible things
