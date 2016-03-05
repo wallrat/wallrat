@@ -5357,11 +5357,15 @@
 	
 	var _nextLevel2 = _interopRequireDefault(_nextLevel);
 	
-	var _levels = __webpack_require__(210);
+	var _lose = __webpack_require__(210);
+	
+	var _lose2 = _interopRequireDefault(_lose);
+	
+	var _levels = __webpack_require__(211);
 	
 	var _levels2 = _interopRequireDefault(_levels);
 	
-	__webpack_require__(211);
+	__webpack_require__(212);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -5425,7 +5429,7 @@
 	    { name: 'resume', from: 'paused', to: 'playing' }, // resume playing after showing a help topic
 	    //{ name: 'win',    from: 'playing',               to: 'won'      }, // player won
 	    { name: 'lose', from: 'playing', to: 'lost' }, // player died
-	    { name: 'quit', from: 'playing', to: 'lost' }, // player quit
+	    //{ name: 'quit',   from: 'playing',               to: 'lost'     }, // player quit
 	    { name: 'finish', from: ['won', 'lost'], to: 'menu' } // back to menu
 	    ]
 	  }),
@@ -5443,6 +5447,8 @@
 	    this.mode.onLoading = this.loadLevel.bind(this);
 	    this.mode.onPlaying = this.startGame.bind(this);
 	    this.mode.onPaused = this.pauseGame.bind(this);
+	
+	    this.mode.onLost = this.loseGame.bind(this);
 	    // this.mode.onStarting = (event,from,to) => { console.log('onStarting',event,from,'->',to); this.mode.load() }
 	    //this.mode.onLoad = (event,from,to,level) => { console.log('onLoad',event,from,'->',to,level); }
 	
@@ -5503,7 +5509,7 @@
 	    this.map.player = Object.assign(this.player, this.map.player);
 	
 	    // clear out effects
-	    this.effects = [];
+	    this.effects = null;
 	
 	    // let the renderer load it's resources
 	    this.renderer.loadLevel(_levels2.default[this.level]);
@@ -5522,6 +5528,11 @@
 	
 	    console.log('pauseGame', event, from, to, modal);
 	    this.showModal(modal);
+	  },
+	
+	  loseGame: function loseGame(event, from, to) {
+	    console.log('loseGame', event, from, to);
+	    this.showModal(_lose2.default);
 	  },
 	
 	  // modals
@@ -6935,7 +6946,11 @@
 	      // do damage
 	      console.log(attacker.name, 'hits', target.name);
 	      target.hp = target.hp - 1;
-	      // TODO: check if dead
+	
+	      // check if player is dead
+	      if (target.hp === 0) {
+	        _this.mode.lose();
+	      }
 	    });
 	  }
 	};
@@ -7510,7 +7525,7 @@
 	    this.debug = new PIXI.Text('console', { font: '14px MiniSet2', fill: 0xAAAAAA, align: 'left' });
 	    this.debug.position.x = 30 * TILE_WIDTH + 50;
 	    this.debug.position.y = 10;
-	    this.stage.addChild(this.debug);
+	    //this.stage.addChild(this.debug)
 	  },
 	
 	  render: function render(dt) {
@@ -7661,6 +7676,14 @@
 	    this.stage.addChild(this.text);
 	
 	    // button?
+	    // this.resume = new PIXI.Text('Resume',{font : '34px MiniSet2', fill : 0xaaaaff, align : 'left'});
+	    // this.resume.position.x = this.game.renderer.stage.width / 2
+	    // this.resume.position.y = (this.game.renderer.stage.height / 2) + 45
+	    // this.resume.anchor.set(0.5,0.5)
+	    // this.stage.addChild(this.resume)
+	    //
+	    // this.resume.interactive = true
+	    // this.resume.click = () => this.game.mode.resume()
 	  },
 	
 	  render: function render(dt) {
@@ -7764,6 +7787,47 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	exports.default = {
+	
+	  input: function input(_input) {
+	    if (_input.any) {
+	      _input.clear();
+	      this.game.mode.finish();
+	    }
+	  },
+	
+	  update: function update() {
+	    return null;
+	  },
+	
+	  init: function init(game) {
+	    this.game = game;
+	
+	    // create stage
+	    this.stage = new PIXI.Container();
+	
+	    // debug
+	    this.text = new PIXI.Text('You died.', { font: '34px MiniSet2', fill: 0xaaaaff, align: 'left' });
+	    this.text.position.x = this.game.renderer.stage.width / 2;
+	    this.text.position.y = this.game.renderer.stage.height / 2;
+	    this.text.anchor.set(0.5, 0.5);
+	    this.stage.addChild(this.text);
+	  },
+	
+	  render: function render(dt) {
+	    this.game.renderer.renderer.render(this.stage);
+	  }
+	};
+
+/***/ },
+/* 211 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
 	var generated = [{ name: 'Generated 1', box: 0.45, heavyBox: 0, monsters: { 'S': 1, 'G': 0, 'Z': 0 } }, { name: 'Generated 2', box: 0.45, heavyBox: 0.05, monsters: { 'S': 1, 'G': 0, 'Z': 2 } }, { name: 'Generated 3', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 2 } }, { name: 'Generated 4', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 3 } }, { name: 'Generated 5', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 2 } }, { name: 'Generated 6', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 3 } }, { name: 'Generated 7', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 2 } }, { name: 'Generated 8', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3 } }, { name: 'Generated 9', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3 } }, { name: 'Generated 10', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5 } }];
 	
 	exports.default = [generated[0], generated[1], generated[2], generated[3], generated[4], generated[5], generated[6], generated[7], generated[8], generated[9], {
@@ -7781,16 +7845,16 @@
 	}];
 
 /***/ },
-/* 211 */
+/* 212 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(212);
+	var content = __webpack_require__(213);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(214)(content, {});
+	var update = __webpack_require__(215)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -7807,10 +7871,10 @@
 	}
 
 /***/ },
-/* 212 */
+/* 213 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(213)();
+	exports = module.exports = __webpack_require__(214)();
 	// imports
 	
 	
@@ -7821,7 +7885,7 @@
 
 
 /***/ },
-/* 213 */
+/* 214 */
 /***/ function(module, exports) {
 
 	/*
@@ -7877,7 +7941,7 @@
 
 
 /***/ },
-/* 214 */
+/* 215 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
