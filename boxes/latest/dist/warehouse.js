@@ -6790,6 +6790,13 @@
 	  addEffect: function addEffect(effect) {
 	    this.effects = this.effects || [];
 	    this.effects.push(effect);
+	    this.effectsRunning = this.effectsRunning || 0;
+	    this.effectsRunning += 1;
+	  },
+	
+	  waitForEffects: function waitForEffects(callback) {
+	    this.waitingForEffects = this.waitingForEffects || [];
+	    this.waitingForEffects.push(callback);
 	  },
 	
 	  // --- Game loop methods
@@ -6834,7 +6841,10 @@
 	    if (input.key == 50 /* 2 */) {
 	        this.mode.load(this.level);
 	      }
-	    if (input.key == 51 /* 2 */) {
+	    if (input.key == 51 /* 3 */) {
+	        this.mode.load(this.level);
+	      }
+	    if (input.key == 57 /* 3 */) {
 	        this.addEffect(_screenshake2.default.create(0.3, 16));
 	      }
 	
@@ -6843,7 +6853,17 @@
 	  },
 	
 	  update: function update(step) {
+	    // modal?
 	    if (this.modal) return this.modal.update(step);
+	
+	    // is anyone waiting to be notified when effecs are done?
+	    if (this.waitingForEffects && this.effectsRunning == 0) {
+	      var callback = null;
+	      while (callback = this.waitingForEffects.shift()) {
+	        callback();
+	      }
+	      this.waitingForEffects = null;
+	    }
 	
 	    //this.debug.updateStep = step
 	    this.debug.updateFrames = this.debug.updateFrames || 0;
@@ -6897,6 +6917,9 @@
 	      // update player score
 	      _this.score += points;
 	
+	      // effects
+	      _this.addEffect(_screenshake2.default.create(0.3, 16));
+	
 	      // check if there are any monsters left
 	      var monstersAlive = 0;
 	      for (var i = 0; i < _this.map.monsters.length; i++) {
@@ -6904,11 +6927,10 @@
 	      }
 	
 	      // level complete?
-	      // TODO: let animations finish, setTimeout is kind of a turd
-	      if (monstersAlive == 0) setTimeout(function () {
-	        console.log('no more monsters! WIN!');
+	      if (monstersAlive == 0) _this.waitForEffects(function () {
+	        console.log('no more monsters! WIN!', _this.debug.updateFrames);
 	        _this.mode.load(_this.level + 1);
-	      }, 700);
+	      });
 	    });
 	
 	    this.subscribe('attack', function (attacker, target) {
@@ -7539,6 +7561,7 @@
 	    }
 	
 	    // effects
+	    this.game.effectsRunning = 0;
 	    if (effects) {
 	      for (var i = 0; i < effects.length; i++) {
 	        var effect = effects[i];
@@ -7548,6 +7571,7 @@
 	        }
 	
 	        if (!effect.done) {
+	          this.game.effectsRunning += 1;
 	          effect.render(dt);
 	          if (effect.done && effect.cleanup) {
 	            effect.cleanup(this.stage);
