@@ -7422,13 +7422,15 @@
 	
 	    // create pixi instance
 	    PIXI.SCALE_MODES.DEFAULT = 1;
-	    // this.renderer = new PIXI.autoDetectRenderer(480,320, {
-	    //   roundPixels: true,
+	    // this.renderer = new PIXI.autoDetectRenderer(960,640, {
+	    //   //roundPixels: true,
 	    //   //resolution: window.devicePixelRatio * 2
 	    // })
-	
-	    this.renderer = new PIXI.autoDetectRenderer(960, 640, {
-	      roundPixels: true
+	    //this.renderer = new PIXI.autoDetectRenderer(960,640,{
+	    this.renderer = new PIXI.WebGLRenderer(960, 640, {
+	      roundPixels: true,
+	      resolution: window.devicePixelRatio * 2 * 2,
+	      antialias: false
 	    });
 	
 	    // this.renderer = new PIXI.autoDetectRenderer(
@@ -7439,7 +7441,6 @@
 	    //   })
 	
 	    // debug
-	    //resolution: window.devicePixelRatio * 2
 	    this.renderer.backgroundColor = 0x111111;
 	
 	    // The renderer will create a canvas element for you that you can then insert into the DOM.
@@ -7450,9 +7451,7 @@
 	    // load resources
 	
 	    // create stage
-	    //this.screen = new PIXI.Container()
 	    this.stage = new PIXI.Container();
-	    // this.screen.addChild(this.stage)
 	
 	    var map = this.game.map;
 	    var player = map.player;
@@ -7462,8 +7461,9 @@
 	    // things
 	    for (var i = 0; i < things.length; i++) {
 	      var thing = things[i];
-	      var color = thing.isMovable ? 0xFAFA55 : 0xFFFFFF;
-	      thing.sprite = new PIXI.Sprite(box(color));
+	
+	      thing.sprite = thing.isMovable ? new PIXI.Sprite.fromImage('assets/box_01.png') : new PIXI.Sprite.fromImage('assets/heavy_box_01.png');
+	
 	      this.stage.addChild(thing.sprite);
 	
 	      // TODO: better handling of void/invisible things
@@ -7508,27 +7508,7 @@
 	    this.debug = new PIXI.Text('console', { font: '14px MiniSet2', fill: 0xAAAAAA, align: 'left' });
 	    this.debug.position.x = 30 * TILE_WIDTH + 50;
 	    this.debug.position.y = 10;
-	    //this.stage.addChild(this.debug)
-	
-	    // minimap
-	    // let minimapWidth = (480/6)
-	    // let minimapHeight = (320/6)
-	    //
-	    // let bg = new PIXI.Graphics()
-	    // bg.lineStyle(1, 0x000000, 1)
-	    // bg.beginFill(0x000000, 1)
-	    // bg.drawRect(0, 0, minimapWidth, minimapHeight)
-	
-	    //this.screen.addChild(bg)
-	
-	    // this.minimapRenderer = new PIXI.RenderTexture(this.renderer,480,320)
-	    // this.minimapRenderer.render(this.stage)
-	    // this.minimap = new PIXI.Sprite(this.minimapRenderer)
-	    // this.minimap.position.x  = 0
-	    // this.minimap.position.y  = 0
-	    // this.minimap.scale.x = minimapWidth / 480
-	    // this.minimap.scale.y = minimapHeight / 320
-	    //this.screen.addChild(this.minimap)
+	    this.stage.addChild(this.debug);
 	  },
 	
 	  render: function render(dt) {
@@ -7607,15 +7587,12 @@
 	      debug: this.game.debug
 	    }, null, ' ');
 	
-	    // update camera
-	    this.stage.position.x = 240 - player.sprite.position.x - TILE_WIDTH / 2;
-	    this.stage.position.y = 160 - player.sprite.position.y - TILE_HEIGHT / 2;
-	    //this.stage.position.x = 120 - player.sprite.position.x - TILE_WIDTH
-	    //this.stage.position.y = 80 - player.sprite.position.y - TILE_HEIGHT
+	    this.stage.position.x = 240 - player.sprite.position.x - TILE_WIDTH;
+	    this.stage.position.y = 160 - player.sprite.position.y - TILE_HEIGHT;
+	    this.stage.position.x = 120 - player.sprite.position.x - TILE_WIDTH;
+	    this.stage.position.y = 80 - player.sprite.position.y - TILE_HEIGHT;
 	
 	    // this is the main render call that makes pixi draw your container and its children.
-	    //this.minimapRenderer.clear()
-	    //this.minimapRenderer.render(this.stage)
 	    this.renderer.render(this.stage);
 	  }
 	};
@@ -7833,7 +7810,7 @@
 	
 	
 	// module
-	exports.push([module.id, "* { margin:0; padding:0; } /* to remove the top and left whitespace */\n\nhtml, body { width:100%; height:100%; } /* just to be sure these are full screen*/\n\ncanvas { display:block; } /* To remove the scrollbars */\n\nbody {\n  background-color: #222;\n  color: #fff;\n}\n\n/*************************/\n/*        FONTS          */\n/*************************/\n\n@font-face {\n    font-family: 'MiniSet2';\n    src: url('/assets/fonts/miniset2-webfont.eot');\n    src: url('/assets/fonts/miniset2-webfont.eot?#iefix') format('embedded-opentype'),\n         url('/assets/fonts/miniset2-webfont.woff') format('woff'),\n         url('/assets/fonts/miniset2-webfont.ttf') format('truetype');\n    font-weight: normal;\n    font-style: normal;\n}\n\n.font-pixel {\n  font-family: \"MiniSet2\", cursive;\n}\n\n/*text-renderer*/\nmain {\n  /*width: 568px;\n  height: 320px;*/\n  width: 920px;\n  height: 640px;\n\n  padding-left: 25px;\n\n  background-color: #000;\n  font-size: 22px;\n}\n\n.trapped {\n  color: red\n}\n\n.player {\n  display: inline-block;\n  color: lightblue;\n  /*transform: translateX(5px);*/\n\n}\n\n#wrapper {\n  display: -webkit-box;\n  display: -webkit-flex;\n  display: -ms-flexbox;\n  display: flex;\n  -webkit-box-orient: horizontal;\n  -webkit-box-direction: normal;\n  -webkit-flex-direction: row;\n      -ms-flex-direction: row;\n          flex-direction: row;\n}\n\n#console {\n  padding: 20px;\n  -webkit-box-flex: 1;\n  -webkit-flex: 1;\n      -ms-flex: 1;\n          flex: 1;\n  background-color: #422;\n}\n", ""]);
+	exports.push([module.id, "* { margin:0; padding:0; } /* to remove the top and left whitespace */\n\nhtml, body { width:100%; height:100%; } /* just to be sure these are full screen*/\n\ncanvas { display:block; } /* To remove the scrollbars */\n\nbody {\n  background-color: #222;\n  color: #fff;\n}\n\n/*************************/\n/*        FONTS          */\n/*************************/\n\n@font-face {\n    font-family: 'MiniSet2';\n    src: url('/assets/fonts/miniset2-webfont.eot');\n    src: url('/assets/fonts/miniset2-webfont.eot?#iefix') format('embedded-opentype'),\n         url('/assets/fonts/miniset2-webfont.woff') format('woff'),\n         url('/assets/fonts/miniset2-webfont.ttf') format('truetype');\n    font-weight: normal;\n    font-style: normal;\n}\n\n.font-pixel {\n  font-family: \"MiniSet2\", cursive;\n}\n\n/*text-renderer*/\nmain {\n  /*width: 568px;\n  height: 320px;*/\n  width: 920px;\n  height: 640px;\n\n  padding-left: 25px;\n\n  background-color: #000;\n  font-size: 22px;\n}\n\n.trapped {\n  color: red\n}\n\n.player {\n  display: inline-block;\n  color: lightblue;\n  /*transform: translateX(5px);*/\n\n}\n\n#wrapper {\n  display: -webkit-box;\n  display: -webkit-flex;\n  display: -ms-flexbox;\n  display: flex;\n  -webkit-box-orient: horizontal;\n  -webkit-box-direction: normal;\n  -webkit-flex-direction: row;\n      -ms-flex-direction: row;\n          flex-direction: row;\n}\n\n#console {\n  padding: 20px;\n  -webkit-box-flex: 1;\n  -webkit-flex: 1;\n      -ms-flex: 1;\n          flex: 1;\n  background-color: #422;\n}\n\ncanvas {\n  image-rendering: optimizeSpeed;\n  image-rendering: -moz-crisp-edges;\n  image-rendering: -o-crisp-edges;\n  image-rendering: -webkit-optimize-contrast;\n  image-rendering: optimize-contrast;\n  image-rendering: crisp-edges;\n  image-rendering: pixelated;\n  -ms-interpolation-mode: nearest-neighbor;\n}\n", ""]);
 	
 	// exports
 
