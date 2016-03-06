@@ -5357,9 +5357,9 @@
 	
 	var _nextLevel2 = _interopRequireDefault(_nextLevel);
 	
-	var _lose = __webpack_require__(210);
+	var _gameOver = __webpack_require__(210);
 	
-	var _lose2 = _interopRequireDefault(_lose);
+	var _gameOver2 = _interopRequireDefault(_gameOver);
 	
 	var _levels = __webpack_require__(211);
 	
@@ -5404,6 +5404,9 @@
 	  // state
 	  debug: {},
 	  player: { name: 'Player' },
+	  totalTimeSpent: 0,
+	  // sessionTimeSpent: 0,
+	  levelTimeSpent: 0,
 	
 	  // resources
 	  renderer: Object.create(_pixiRenderer2.default),
@@ -5427,10 +5430,12 @@
 	    { name: 'play', from: 'loading', to: 'playing' }, // play the level after loading it
 	    { name: 'pause', from: ['loading', 'playing'], to: 'paused' }, // pause the game to show a help topic
 	    { name: 'resume', from: 'paused', to: 'playing' }, // resume playing after showing a help topic
-	    //{ name: 'win',    from: 'playing',               to: 'won'      }, // player won
-	    { name: 'lose', from: 'playing', to: 'lost' }, // player died
+	
+	    { name: 'die', from: 'playing', to: 'died' }, // player died
+	    { name: 'lose', from: 'died', to: 'gameOver' }, // player have no lives left
+	    { name: 'win', from: 'playing', to: 'won' }, // player won
 	    //{ name: 'quit',   from: 'playing',               to: 'lost'     }, // player quit
-	    { name: 'finish', from: ['won', 'lost'], to: 'menu' } // back to menu
+	    { name: 'finish', from: ['won', 'gameOver'], to: 'menu' } // back to menu
 	    ]
 	  }),
 	
@@ -5448,7 +5453,8 @@
 	    this.mode.onPlaying = this.startGame.bind(this);
 	    this.mode.onPaused = this.pauseGame.bind(this);
 	
-	    this.mode.onLost = this.loseGame.bind(this);
+	    this.mode.onDied = this.playerDied.bind(this);
+	    this.mode.onGameOver = this.gameOver.bind(this);
 	    // this.mode.onStarting = (event,from,to) => { console.log('onStarting',event,from,'->',to); this.mode.load() }
 	    //this.mode.onLoad = (event,from,to,level) => { console.log('onLoad',event,from,'->',to,level); }
 	
@@ -5508,6 +5514,9 @@
 	    // map has a placeholder for the player, merge it with our version
 	    this.map.player = Object.assign(this.player, this.map.player);
 	
+	    // reset stats
+	    this.levelTimeSpent = 0;
+	
 	    // clear out effects
 	    this.effects = null;
 	
@@ -5515,7 +5524,7 @@
 	    this.renderer.loadLevel(_levels2.default[this.level]);
 	
 	    // show a modal before starting
-	    this.showModal(_nextLevel2.default);
+	    this.showModal(_nextLevel2.default.create());
 	  },
 	
 	  startGame: function startGame(event, from, to) {
@@ -5524,21 +5533,28 @@
 	  },
 	
 	  pauseGame: function pauseGame(event, from, to) {
-	    var modal = arguments.length <= 3 || arguments[3] === undefined ? _pause2.default : arguments[3];
+	    var modal = arguments.length <= 3 || arguments[3] === undefined ? _pause2.default.create() : arguments[3];
 	
 	    console.log('pauseGame', event, from, to, modal);
 	    this.showModal(modal);
 	  },
 	
-	  loseGame: function loseGame(event, from, to) {
-	    console.log('loseGame', event, from, to);
-	    this.showModal(_lose2.default);
+	  playerDied: function playerDied(event, from, to, reason) {
+	    console.log('playerDied', event, from, to, reason);
+	    // TODO: if lives == 0
+	    // else this.mode.load(this.level)
+	    this.mode.lose(reason);
+	  },
+	
+	  gameOver: function gameOver(event, from, to, reason) {
+	    console.log('gameOver', event, from, to);
+	    this.showModal(_gameOver2.default.create(reason));
 	  },
 	
 	  // modals
 	  // TODO: stack modals?
 	  showModal: function showModal(modal) {
-	    this.modal = Object.create(modal);
+	    this.modal = modal;
 	    this.modal.init(this);
 	  },
 	
@@ -6842,7 +6858,7 @@
 	
 	    // debug stuff
 	    if (input.key == 68 /* D */) {
-	        this.mode.pause(_debug2.default);
+	        this.mode.pause(_debug2.default.create());
 	      }
 	    if (input.key == 49 /* 1 */) {
 	        this.map.monsters.forEach(function (m) {
@@ -6881,8 +6897,14 @@
 	    this.debug.updateFrames++;
 	
 	    // Status
-	    this.levelTimeSpent = this.levelTimeSpent || 0;
+	    this.totalTimeSpent += step;
 	    this.levelTimeSpent += step;
+	
+	    // time's up?
+	    if (this.levelTimeSpent > (this.levelMaxTime || 60)) {
+	      this.mode.die('Too slow, time is precious!');
+	      return;
+	    }
 	
 	    // handle monsters (move this )
 	    for (var i = 0; i < this.map.monsters.length; i++) {
@@ -6949,7 +6971,7 @@
 	
 	      // check if player is dead
 	      if (target.hp === 0) {
-	        _this.mode.lose();
+	        _this.mode.die('Killed by a ' + attacker.name);
 	      }
 	    });
 	  }
@@ -6987,6 +7009,10 @@
 	}
 	
 	exports.default = {
+	  create: function create() {
+	    return Object.create(this);
+	  },
+	
 	  input: function input(_input) {
 	    if (_input.any) {
 	      console.log('un-pausing-debug!');
@@ -7525,7 +7551,14 @@
 	    this.debug = new PIXI.Text('console', { font: '14px MiniSet2', fill: 0xAAAAAA, align: 'left' });
 	    this.debug.position.x = 30 * TILE_WIDTH + 50;
 	    this.debug.position.y = 10;
-	    //this.stage.addChild(this.debug)
+	    this.stage.addChild(this.debug);
+	
+	    // stats
+	    // this.stats = new PIXI.Text('0',{font : '14px MiniSet2', fill : 0x5b6ee1, align : 'left'});
+	    // this.stats.position.x = 0
+	    // this.stats.position.y = 0
+	    // // this.stats.position.y = 21 * TILE_HEIGHT
+	    // this.stage.addChild(this.stats)
 	  },
 	
 	  render: function render(dt) {
@@ -7627,6 +7660,9 @@
 	  value: true
 	});
 	exports.default = {
+	  create: function create() {
+	    return Object.create(this);
+	  },
 	
 	  input: function input(_input) {
 	    if (_input.any) {
@@ -7741,6 +7777,9 @@
 	  value: true
 	});
 	exports.default = {
+	  create: function create() {
+	    return Object.create(this);
+	  },
 	
 	  input: function input(_input) {
 	    if (_input.any) {
@@ -7788,6 +7827,11 @@
 	  value: true
 	});
 	exports.default = {
+	  create: function create(reason) {
+	    var modal = Object.create(this);
+	    modal.reason = reason;
+	    return modal;
+	  },
 	
 	  input: function input(_input) {
 	    if (_input.any) {
@@ -7807,11 +7851,17 @@
 	    this.stage = new PIXI.Container();
 	
 	    // debug
-	    this.text = new PIXI.Text('You died.', { font: '34px MiniSet2', fill: 0xaaaaff, align: 'left' });
+	    this.text = new PIXI.Text('Game Over', { font: '34px MiniSet2', fill: 0xaaaaff, align: 'left' });
 	    this.text.position.x = this.game.renderer.stage.width / 2;
 	    this.text.position.y = this.game.renderer.stage.height / 2;
 	    this.text.anchor.set(0.5, 0.5);
 	    this.stage.addChild(this.text);
+	
+	    this.text2 = new PIXI.Text(this.reason, { font: '18px MiniSet2', fill: 0xaaaaff, align: 'left' });
+	    this.text2.position.x = this.game.renderer.stage.width / 2;
+	    this.text2.position.y = 45 + this.game.renderer.stage.height / 2;
+	    this.text2.anchor.set(0.5, 0.5);
+	    this.stage.addChild(this.text2);
 	  },
 	
 	  render: function render(dt) {
