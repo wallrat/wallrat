@@ -5396,6 +5396,7 @@
 	//   - Help? (paused modal?)
 	
 	var INITIAL_PLAYER_HEALTH = 5;
+	var INITIAL_PLAYER_LIVES = 3;
 	
 	var Game = {
 	  name: 'Warehouse',
@@ -5403,10 +5404,11 @@
 	
 	  // state
 	  debug: {},
-	  player: { name: 'Player' },
+	  player: { name: 'Player', lives: 3 },
 	  totalTimeSpent: 0,
 	  // sessionTimeSpent: 0,
 	  levelTimeSpent: 0,
+	  levelTimeBonus: 0,
 	
 	  // resources
 	  renderer: Object.create(_pixiRenderer2.default),
@@ -5418,7 +5420,10 @@
 	    this.level = 0;
 	    this.score = 0;
 	
-	    this.player.hp = INITIAL_PLAYER_HEALTH, this.debug = {};
+	    this.player.hp = INITIAL_PLAYER_HEALTH;
+	    this.player.lives = INITIAL_PLAYER_LIVES;
+	
+	    this.debug = {};
 	  },
 	
 	  // FSM
@@ -5426,7 +5431,7 @@
 	    initial: 'booting',
 	    events: [{ name: 'ready', from: 'booting', to: 'menu' }, // initial page loads images and sounds then transitions to 'menu'
 	    { name: 'start', from: 'menu', to: 'starting' }, // start a new game from the menu
-	    { name: 'load', from: ['starting', 'playing'], to: 'loading' }, // start loading a new level (either to start a new game, or next level while playing)
+	    { name: 'load', from: ['starting', 'playing', 'died'], to: 'loading' }, // start loading a new level (either to start a new game, or next level while playing)
 	    { name: 'play', from: 'loading', to: 'playing' }, // play the level after loading it
 	    { name: 'pause', from: ['loading', 'playing'], to: 'paused' }, // pause the game to show a help topic
 	    { name: 'resume', from: 'paused', to: 'playing' }, // resume playing after showing a help topic
@@ -5434,7 +5439,7 @@
 	    { name: 'die', from: 'playing', to: 'died' }, // player died
 	    { name: 'lose', from: 'died', to: 'gameOver' }, // player have no lives left
 	    { name: 'win', from: 'playing', to: 'won' }, // player won
-	    //{ name: 'quit',   from: 'playing',               to: 'lost'     }, // player quit
+	    //{ name: 'quit',   from: 'playing',                       to: 'lost'     }, // player quit
 	    { name: 'finish', from: ['won', 'gameOver'], to: 'menu' } // back to menu
 	    ]
 	  }),
@@ -5516,6 +5521,8 @@
 	
 	    // reset stats
 	    this.levelTimeSpent = 0;
+	    this.levelTimeBonus = 0;
+	    this.levelMaxTime = _levels2.default[this.level].levelMaxTime || 60;
 	
 	    // clear out effects
 	    this.effects = null;
@@ -5541,9 +5548,13 @@
 	
 	  playerDied: function playerDied(event, from, to, reason) {
 	    console.log('playerDied', event, from, to, reason);
-	    // TODO: if lives == 0
-	    // else this.mode.load(this.level)
-	    this.mode.lose(reason);
+	    this.player.lives -= 1;
+	    if (this.player.lives > 0) {
+	      this.player.hp = INITIAL_PLAYER_HEALTH;
+	      this.mode.load(this.level);
+	    } else {
+	      this.mode.lose(reason);
+	    }
 	  },
 	
 	  gameOver: function gameOver(event, from, to, reason) {
@@ -5643,7 +5654,7 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	var WIDTH = 30;
-	var HEIGHT = 20;
+	var HEIGHT = 19;
 	
 	// Iphone 4 640x960 (320x480 16x16 = 20*30)
 	// Iphone 5 640x1136 (320x568 16x16 = 20*35.5 or x margin of 88)
@@ -5907,19 +5918,19 @@
 	
 	var Killable = {
 	  isKillable: true,
-	  kill: function kill() {
-	    var points = arguments.length <= 0 || arguments[0] === undefined ? 1 : arguments[0];
-	
+	  kill: function kill(score) {
 	    if (this.isDead) {
 	      console.error('entitity already dead in .kill()', this);
 	      return;
 	    }
 	
 	    this.isDead = true;
+	
 	    // remove ourselfs from the map so we can move another entity
 	    // to this position the same tick (ie 'squash')
 	    this.game.map.remove(this);
-	    this.game.publish('kill', this, points);
+	
+	    this.game.publish('kill', this, score || this.score);
 	  }
 	};
 	
@@ -5961,6 +5972,7 @@
 	var Snake = {
 	  type: ENTITY.SNAKE,
 	  name: 'Snake',
+	  score: 100,
 	
 	  update: function update(step) {
 	    var map = this.game.map;
@@ -5986,6 +5998,7 @@
 	var Grue = {
 	  type: ENTITY.GRUE,
 	  name: 'Grue',
+	  score: 500,
 	  sleep: 1,
 	
 	  update: function update(step) {
@@ -6008,7 +6021,7 @@
 	    // TODO: refactor to Trapable
 	    if (this.isTrapped) {
 	      this.game.publish('explosion', { x: this.x, y: this.y });
-	      this.kill(5);
+	      this.kill(this.score * 5);
 	      return;
 	    }
 	
@@ -6065,6 +6078,7 @@
 	var Zombie = {
 	  type: ENTITY.ZOMBIE,
 	  name: 'Zombie',
+	  score: 300,
 	  sleep: 1,
 	
 	  update: function update(step) {
@@ -6084,7 +6098,7 @@
 	    // trapped?
 	    if (this.isTrapped) {
 	      this.game.publish('explosion', { x: this.x, y: this.y });
-	      this.kill();
+	      this.kill(this.score * 5);
 	      return;
 	    }
 	
@@ -6480,7 +6494,7 @@
 	
 	// TODO: duplicated in map, move to consts
 	var WIDTH = 30;
-	var HEIGHT = 20;
+	var HEIGHT = 19;
 	
 	var defaults = {
 	  // size
@@ -6808,6 +6822,12 @@
 	      map.move(player, x, y);
 	    } else {
 	      var other = map.entityAt(x, y);
+	
+	      if (other.isMonster) {
+	        console.log('stupidly pushing the ' + other.name);
+	        this.publish('attack', other, player);
+	      }
+	
 	      if (other.isMovable && this.pushEntity(other, dx, dy)) {
 	        map.move(player, x, y);
 	      }
@@ -6901,7 +6921,7 @@
 	    this.levelTimeSpent += step;
 	
 	    // time's up?
-	    if (this.levelTimeSpent > (this.levelMaxTime || 60)) {
+	    if (this.levelTimeSpent > this.levelMaxTime + this.levelTimeBonus) {
 	      this.mode.die('Too slow, time is precious!');
 	      return;
 	    }
@@ -6946,9 +6966,12 @@
 	      _this.addEffect(_screenshake2.default.create(0.3, 16));
 	    });
 	
-	    this.subscribe('kill', function (monster, points) {
+	    this.subscribe('kill', function (monster, score) {
 	      // update player score
-	      _this.score += points;
+	      _this.score += score;
+	
+	      // add some time bonus
+	      _this.levelTimeBonus += 10;
 	
 	      // check if there are any monsters left
 	      var monstersAlive = 0;
@@ -7155,6 +7178,8 @@
 	
 	  init: function init() {
 	    // stage set by renderer
+	    this.originalX = this.screen.position.x;
+	    this.originalY = this.screen.position.y;
 	  },
 	
 	  render: function render(dt) {
@@ -7162,8 +7187,8 @@
 	
 	    if (this.duration <= 0) {
 	      this.done = true;
-	      this.stage.position.x = 0;
-	      this.stage.position.y = 0;
+	      this.screen.position.x = this.originalX;
+	      this.screen.position.y = this.originalY;
 	      return;
 	    }
 	
@@ -7175,8 +7200,8 @@
 	    var dx = Math.sin(this.randomAngle) * this.radius;
 	    var dy = Math.cos(this.randomAngle) * this.radius;
 	
-	    this.stage.position.x = dx;
-	    this.stage.position.y = dy;
+	    this.screen.position.x = this.originalX + dx;
+	    this.screen.position.y = this.originalY + dy;
 	  }
 	};
 
@@ -7499,8 +7524,15 @@
 	  loadLevel: function loadLevel(level) {
 	    // load resources
 	
+	    // create screen
+	    this.screen = new PIXI.Container();
+	
 	    // create stage
 	    this.stage = new PIXI.Container();
+	    this.screen.addChild(this.stage);
+	
+	    // make room for statusbar
+	    this.stage.position.y = 16;
 	
 	    var map = this.game.map;
 	    var player = map.player;
@@ -7554,11 +7586,11 @@
 	    this.stage.addChild(this.debug);
 	
 	    // stats
-	    // this.stats = new PIXI.Text('0',{font : '14px MiniSet2', fill : 0x5b6ee1, align : 'left'});
-	    // this.stats.position.x = 0
-	    // this.stats.position.y = 0
-	    // // this.stats.position.y = 21 * TILE_HEIGHT
-	    // this.stage.addChild(this.stats)
+	    this.stats = new PIXI.Text('0', { font: '14px MiniSet2', fill: 0x5b6ee1, align: 'left' });
+	    this.stats.position.x = 0;
+	    this.stats.position.y = 0;
+	    // this.stats.position.y = 21 * TILE_HEIGHT
+	    this.screen.addChild(this.stats);
 	  },
 	
 	  render: function render(dt) {
@@ -7611,6 +7643,7 @@
 	      for (var i = 0; i < effects.length; i++) {
 	        var effect = effects[i];
 	        if (!effect.stage) {
+	          effect.screen = this.screen;
 	          effect.stage = this.stage;
 	          effect.init();
 	        }
@@ -7619,11 +7652,14 @@
 	          this.game.effectsRunning += 1;
 	          effect.render(dt);
 	          if (effect.done && effect.cleanup) {
-	            effect.cleanup(this.stage);
+	            effect.cleanup();
 	          }
 	        }
 	      }
 	    }
+	
+	    // score
+	    this.stats.text = 'Level ' + (this.game.level + 1) + '   ' + 'Score ' + this.game.score + '   ' + 'Time ' + Math.floor(this.game.levelMaxTime - this.game.levelTimeSpent + this.game.levelTimeBonus) + '   ' + 'Health ' + this.game.player.hp + '   ' + 'Lives ' + this.game.player.lives;
 	
 	    // debug
 	    var game = player.game;
@@ -7646,7 +7682,7 @@
 	    // this.stage.position.y = 80 - player.sprite.position.y - TILE_HEIGHT
 	
 	    // this is the main render call that makes pixi draw your container and its children.
-	    this.renderer.render(this.stage);
+	    this.renderer.render(this.screen);
 	  }
 	};
 
@@ -7883,15 +7919,15 @@
 	exports.default = [generated[0], generated[1], generated[2], generated[3], generated[4], generated[5], generated[6], generated[7], generated[8], generated[9], {
 	  name: 'Level 1',
 	  // max time etc
-	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....b.bbbbbbbb\nb......bB......b....S.b.......\nb...............bbbbbbbbbbbbbb\n...................b...b......\n........b.......b.bbbbbb......\n.......b..............b.......\n........b...........b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\nbbb..bbbbbbbbbbbbb..bbbbbbbbbb\n      '
+	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....b.bbbbbbbb\nb......bB......b....S.b.......\nb...............bbbbbbbbbbbbbb\n...................b...b......\n........b.......b.bbbbbb......\n.......b..............b.......\n........b...........b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
 	}, {
 	  name: 'Level 2',
 	  // max time etc
-	  map: '\nbbb..bbbbbbbbbbbbb..bbbBB,,,,,\n.......b.......b......B.......\n.....b..b......b....b.bbbbbbbb\nb......bB......b....S.b.......\nb.......G.......bbbbbbbbbbbbbb\n........G..........b...b......\n........b.......b.bbbbbb......\n.......b..............b.......\n.......Zb...........b..b......\nb.............b......b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......bG......\nbG.............b..............\n.......b.......@......b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\nbbb..bbbbbbbbbbbbb..bbbbbbbbbb\n      '
+	  map: '\nbbb..bbbbbbbbbbbbb..bbbBB,,,,,\n.......b.......b......B.......\n.....b..b......b....b.bbbbbbbb\nb......bB......b....S.b.......\nb.......G.......bbbbbbbbbbbbbb\n........G..........b...b......\n........b.......b.bbbbbb......\n.......b..............b.......\n.......Zb...........b..b......\nb.............b......b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......bG......\nbG.............b..............\n.......b.......@......b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
 	}, {
 	  name: 'Level 3',
 	  // max time etc
-	  map: '\nbbb..bbbbbbbbbbbbb..bbbbbbbbbb\nG.............................\nG.............................\nG.............................\nG..........bbbbb..............\nG..........b...b..............\nG..........b.@.b..............\nG..........b...b..............\nG..........bbbbb..............\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\n      '
+	  map: '\nbbb..bbbbbbbbbbbbb..bbbbbbbbbb\nG.............................\nG.............................\nG.............................\nG..........bbbbb..............\nG..........b...b..............\nG..........b.@.b..............\nG..........b...b..............\nG..........bbbbb..............\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\nG.............................\n      '
 	}];
 
 /***/ },
