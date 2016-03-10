@@ -5817,8 +5817,7 @@
 	
 	  remove: function remove(entity) {
 	    this.tiles[posToIndex(entity.x, entity.y)] = false;
-	    entity.x = null;
-	    entity.y = null;
+	    entity.hidden = true;
 	  },
 	
 	  load: function load(level, game) {
@@ -7040,7 +7039,7 @@
 	      _this.levelTimeBonus += 10;
 	
 	      // effects
-	      _this.addEffect(_score2.default.create(_this.player, score));
+	      _this.addEffect(_score2.default.create(monster, score));
 	
 	      // check if there are any monsters left
 	      var monstersAlive = 0;
@@ -7341,7 +7340,7 @@
 	  create: function create(_ref, score) {
 	    var x = _ref.x;
 	    var y = _ref.y;
-	    var duration = arguments.length <= 2 || arguments[2] === undefined ? 1 : arguments[2];
+	    var duration = arguments.length <= 2 || arguments[2] === undefined ? 1.4 : arguments[2];
 	
 	    console.log('score effect @ ', x, y);
 	
@@ -7374,7 +7373,7 @@
 	    this.stats.position.y -= dt * 10;
 	
 	    // animate opacity
-	    this.stats.alpha = Math.max(0, 0.5 - this.timeLeft / this.duration);
+	    this.stats.alpha = this.timeLeft / this.duration;
 	  },
 	
 	  cleanup: function cleanup() {
@@ -7794,40 +7793,38 @@
 	
 	    // update things sprites
 	    for (var i = 0; i < things.length; i++) {
-	      var entity = things[i];
-	      // TODO: better check if we should include this monster?
-	      if (entity.x === null && entity.y === null) {
-	        entity.sprite.visible = false;
+	      var thing = things[i];
+	      if (thing.hidden) {
+	        thing.sprite.visible = false;
 	        continue;
 	      }
 	
-	      updateSpritePosition(entity, dt);
+	      updateSpritePosition(thing, dt);
 	    }
 	
 	    // update monster sprites
 	    for (var i = 0; i < monsters.length; i++) {
-	      var entity = monsters[i];
-	      // TODO: better check if we should include this monster?
-	      if (entity.x === null && entity.y === null) {
-	        entity.sprite.visible = false;
+	      var monster = monsters[i];
+	      if (monster.isDead) {
+	        monster.sprite.visible = false;
 	        continue;
 	      }
 	
 	      // check if monster have an sprite (spawned?)
-	      if (!entity.sprite) {
-	        addSpriteToMonster(entity);
-	        this.stage.addChild(entity.sprite);
+	      if (!monster.sprite) {
+	        addSpriteToMonster(monster);
+	        this.stage.addChild(monster.sprite);
 	      }
 	
-	      updateSpritePosition(entity, dt);
+	      updateSpritePosition(monster, dt);
 	
 	      // TODO: layer on effect instead
-	      if (entity.isTrapped) {
-	        if (!entity.sprite.filters) {
-	          entity.sprite.filters = [new PIXI.filters.InvertFilter()];
+	      if (monster.isTrapped) {
+	        if (!monster.sprite.filters) {
+	          monster.sprite.filters = [new PIXI.filters.InvertFilter()];
 	        }
 	      } else {
-	        entity.sprite.filters = null;
+	        monster.sprite.filters = null;
 	      }
 	    }
 	
