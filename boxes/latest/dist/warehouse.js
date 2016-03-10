@@ -5329,43 +5329,43 @@
 	
 	var _gamePlay2 = _interopRequireDefault(_gamePlay);
 	
-	var _input = __webpack_require__(203);
+	var _input = __webpack_require__(204);
 	
 	var _input2 = _interopRequireDefault(_input);
 	
-	var _keyboard = __webpack_require__(204);
+	var _keyboard = __webpack_require__(205);
 	
 	var _keyboard2 = _interopRequireDefault(_keyboard);
 	
-	var _touch = __webpack_require__(205);
+	var _touch = __webpack_require__(206);
 	
 	var _touch2 = _interopRequireDefault(_touch);
 	
-	var _mixins = __webpack_require__(206);
+	var _mixins = __webpack_require__(207);
 	
-	var _gameLoop = __webpack_require__(207);
+	var _gameLoop = __webpack_require__(208);
 	
-	var _pixiRenderer = __webpack_require__(208);
+	var _pixiRenderer = __webpack_require__(209);
 	
 	var _pixiRenderer2 = _interopRequireDefault(_pixiRenderer);
 	
-	var _pause = __webpack_require__(209);
+	var _pause = __webpack_require__(210);
 	
 	var _pause2 = _interopRequireDefault(_pause);
 	
-	var _nextLevel = __webpack_require__(210);
+	var _nextLevel = __webpack_require__(211);
 	
 	var _nextLevel2 = _interopRequireDefault(_nextLevel);
 	
-	var _gameOver = __webpack_require__(211);
+	var _gameOver = __webpack_require__(212);
 	
 	var _gameOver2 = _interopRequireDefault(_gameOver);
 	
-	var _levels = __webpack_require__(212);
+	var _levels = __webpack_require__(213);
 	
 	var _levels2 = _interopRequireDefault(_levels);
 	
-	__webpack_require__(213);
+	__webpack_require__(214);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -6821,6 +6821,10 @@
 	
 	var _hit2 = _interopRequireDefault(_hit);
 	
+	var _score = __webpack_require__(203);
+	
+	var _score2 = _interopRequireDefault(_score);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	exports.default = {
@@ -7034,6 +7038,9 @@
 	
 	      // add some time bonus
 	      _this.levelTimeBonus += 10;
+	
+	      // effects
+	      _this.addEffect(_score2.default.create(_this.player, score));
 	
 	      // check if there are any monsters left
 	      var monstersAlive = 0;
@@ -7325,6 +7332,60 @@
 /* 203 */
 /***/ function(module, exports) {
 
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = {
+	  create: function create(_ref, score) {
+	    var x = _ref.x;
+	    var y = _ref.y;
+	    var duration = arguments.length <= 2 || arguments[2] === undefined ? 1 : arguments[2];
+	
+	    console.log('score effect @ ', x, y);
+	
+	    var that = Object.create(this);
+	    that.x = x;
+	    that.y = y;
+	    that.duration = duration;
+	    that.score = score;
+	    return that;
+	  },
+	
+	  init: function init() {
+	    this.timeLeft = this.duration;
+	
+	    this.stats = new PIXI.Text('+' + this.score, { font: '14px MiniSet2', fill: 0xffffff, align: 'left' });
+	    this.stats.position.x = this.x * 16;
+	    this.stats.position.y = this.y * 16;
+	    this.stage.addChild(this.stats);
+	  },
+	
+	  render: function render(dt) {
+	    this.timeLeft -= dt;
+	
+	    if (this.timeLeft <= 0) {
+	      this.done = true;
+	      return;
+	    }
+	
+	    this.stats.position.x += dt * 10;
+	    this.stats.position.y -= dt * 10;
+	
+	    // animate opacity
+	    this.stats.alpha = Math.max(0, 0.5 - this.timeLeft / this.duration);
+	  },
+	
+	  cleanup: function cleanup() {
+	    this.stage.removeChild(this.stats);
+	  }
+	};
+
+/***/ },
+/* 204 */
+/***/ function(module, exports) {
+
 	"use strict";
 	
 	Object.defineProperty(exports, "__esModule", {
@@ -7346,7 +7407,7 @@
 	};
 
 /***/ },
-/* 204 */
+/* 205 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7416,7 +7477,7 @@
 	};
 
 /***/ },
-/* 205 */
+/* 206 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -7456,7 +7517,7 @@
 	};
 
 /***/ },
-/* 206 */
+/* 207 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -7486,7 +7547,7 @@
 	}
 
 /***/ },
-/* 207 */
+/* 208 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7540,7 +7601,7 @@
 	};
 
 /***/ },
-/* 208 */
+/* 209 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -7820,7 +7881,7 @@
 	};
 
 /***/ },
-/* 209 */
+/* 210 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7937,7 +7998,7 @@
 	};
 
 /***/ },
-/* 210 */
+/* 211 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7987,7 +8048,7 @@
 	};
 
 /***/ },
-/* 211 */
+/* 212 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8039,7 +8100,7 @@
 	};
 
 /***/ },
-/* 212 */
+/* 213 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8064,16 +8125,16 @@
 	}];
 
 /***/ },
-/* 213 */
+/* 214 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(214);
+	var content = __webpack_require__(215);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(216)(content, {});
+	var update = __webpack_require__(217)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -8090,10 +8151,10 @@
 	}
 
 /***/ },
-/* 214 */
+/* 215 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(215)();
+	exports = module.exports = __webpack_require__(216)();
 	// imports
 	
 	
@@ -8104,7 +8165,7 @@
 
 
 /***/ },
-/* 215 */
+/* 216 */
 /***/ function(module, exports) {
 
 	/*
@@ -8160,7 +8221,7 @@
 
 
 /***/ },
-/* 216 */
+/* 217 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
