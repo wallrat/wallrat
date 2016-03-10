@@ -5667,9 +5667,11 @@
 	  ',': _entities.ENTITY.VOID,
 	  'G': _entities.ENTITY.GRUE,
 	  'S': _entities.ENTITY.SNAKE,
-	  'Z': _entities.ENTITY.ZOMBIE
+	  'Z': _entities.ENTITY.ZOMBIE,
+	  'E': _entities.ENTITY.EGG
 	};
 	
+	// TODO: remove
 	function posToIndex(x, y) {
 	  return y * WIDTH + x;
 	}
@@ -5684,6 +5686,9 @@
 	exports.default = {
 	  loaded: false,
 	
+	  posToIndex: posToIndex,
+	  indexToPos: indexToPos,
+	
 	  entityAt: function entityAt(x, y) {
 	    return this.tiles[posToIndex(x, y)];
 	  },
@@ -5692,6 +5697,9 @@
 	  },
 	  isWithin: function isWithin(x, y) {
 	    return x > -1 && x < this.width && y > -1 && y < this.height;
+	  },
+	  isPlayer: function isPlayer(x, y) {
+	    return this.player.x === x && this.player.y === y;
 	  },
 	
 	  near: function near(_ref, _ref2) {
@@ -5847,7 +5855,7 @@
 	        this.player = {};
 	        this.player.x = _x2;
 	        this.player.y = y;
-	      } else if (type === _entities.ENTITY.GRUE || type === _entities.ENTITY.SNAKE || type === _entities.ENTITY.ZOMBIE) {
+	      } else if (type === _entities.ENTITY.GRUE || type === _entities.ENTITY.SNAKE || type === _entities.ENTITY.ZOMBIE || type == _entities.ENTITY.EGG) {
 	        this.monsters.push((0, _entities.createEntity)(type, _x2, y, game));
 	      } else if (type) {
 	        //TODO: remove special list of boxes? dead/alive instead?
@@ -5893,6 +5901,9 @@
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
+	//TODO: make this a constant somewhere
+	var NEAR_COORDS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+	
 	var ENTITY = exports.ENTITY = {
 	  PLAYER: 1,
 	  BOX: 2,
@@ -5900,7 +5911,8 @@
 	  VOID: 4,
 	  GRUE: 10,
 	  SNAKE: 11,
-	  ZOMBIE: 12
+	  ZOMBIE: 12,
+	  EGG: 20
 	};
 	
 	var Movable = { isMovable: true };
@@ -5934,6 +5946,43 @@
 	  }
 	};
 	
+	var Trappable = {
+	  checkIfTrapped: function checkIfTrapped(step) {
+	    var map = this.game.map;
+	
+	    // find any free coords
+	    var trapped = true;
+	    for (var i = 0; i < NEAR_COORDS.length; i++) {
+	      var x = this.x + NEAR_COORDS[i][0];
+	      var y = this.y + NEAR_COORDS[i][1];
+	      if (map.isWithin(x, y) && (map.isEmpty(x, y) || map.isPlayer(x, y))) {
+	        trapped = false;
+	        break;
+	      }
+	
+	      // TODO: handle groups of trapped monsters
+	      var e = map.entityAt(x, y);
+	      if (e && e.isMonster) {
+	        trapped = false;
+	        break;
+	      }
+	    }
+	
+	    if (!trapped) {
+	      this.isTrapped = false;
+	      this.trappedFor = 0;
+	      return false;
+	    }
+	
+	    if (!this.isTrapped) console.log("uhu, I'm trapped!", this);
+	
+	    this.isTrapped = true;
+	    this.trappedFor = this.trappedFor || 0;
+	    this.trappedFor += step;
+	    return true;
+	  }
+	};
+	
 	//TODO: game passed in here smells, think about how we could decouple this?
 	function createEntity(type, x, y, game) {
 	  switch (type) {
@@ -5943,12 +5992,14 @@
 	      return Object.assign({ x: x, y: y, game: game }, Box, NotMovable);
 	    case ENTITY.VOID:
 	      return Object.assign({ x: x, y: y, game: game }, Void, NotMovable);
-	    case ENTITY.GRUE:
-	      return Object.assign({ x: x, y: y, game: game }, Grue, NotMovable, Monster, Killable, Squashable);
 	    case ENTITY.SNAKE:
 	      return Object.assign({ x: x, y: y, game: game }, Snake, NotMovable, Monster, Killable, Squashable);
+	    case ENTITY.GRUE:
+	      return Object.assign({ x: x, y: y, game: game }, Grue, NotMovable, Monster, Killable, Squashable, Trappable);
 	    case ENTITY.ZOMBIE:
-	      return Object.assign({ x: x, y: y, game: game }, Zombie, NotMovable, Monster, Killable, Squashable);
+	      return Object.assign({ x: x, y: y, game: game }, Zombie, NotMovable, Monster, Killable, Squashable, Trappable);
+	    case ENTITY.EGG:
+	      return Object.assign({ x: x, y: y, game: game }, Egg, NotMovable, Killable, Squashable);
 	  }
 	  throw new Error('createEntity for unknown type ' + type);
 	}
@@ -5958,14 +6009,12 @@
 	
 	var Void = {
 	  type: ENTITY.VOID,
-	  name: 'Void',
-	  canSquash: false
+	  name: 'Void'
 	};
 	
 	var Box = {
 	  type: ENTITY.BOX,
-	  name: 'Box',
-	  canSquash: true
+	  name: 'Box'
 	};
 	
 	// Snakes waits on a tile and attacks player when near
@@ -5995,6 +6044,45 @@
 	  }
 	};
 	
+	// TODO: rename to xxx
+	var Egg = {
+	  type: ENTITY.EGG,
+	  name: 'Egg',
+	  score: 200,
+	  period: 10,
+	  spawnEntityOfType: ENTITY.GRUE,
+	
+	  update: function update(step) {
+	    if (this.isDead) return;
+	
+	    this.nextSpawn = this.nextSpawn || this.period;
+	    this.nextSpawn -= step;
+	
+	    // waiting?
+	    if (this.nextSpawn > 0) return;
+	
+	    // spawn
+	    console.log('trying to spawn monster!');
+	    var map = this.game.map;
+	
+	    for (var i = 0; i < NEAR_COORDS.length; i++) {
+	      var x = this.x + NEAR_COORDS[i][0];
+	      var y = this.y + NEAR_COORDS[i][1];
+	
+	      if (map.isWithin(x, y) && map.isEmpty(x, y)) {
+	        var m = createEntity(this.spawnEntityOfType, x, y, this.game);
+	        map.monsters.push(m);
+	        map.tiles[map.posToIndex(m.x, m.y)] = m;
+	        console.log('spawned ', m.name, 'at', m.x, m.y);
+	        break;
+	      }
+	    }
+	
+	    // reset
+	    this.nextSpawn = this.period;
+	  }
+	};
+	
 	var Grue = {
 	  type: ENTITY.GRUE,
 	  name: 'Grue',
@@ -6015,30 +6103,11 @@
 	      if (this.sleep > 0) return;
 	    }
 	
-	    //console.log('Grue step',step)
-	
 	    // trapped?
-	    // TODO: refactor to Trapable
-	    if (this.isTrapped) {
+	    if (this.checkIfTrapped(step)) {
+	      if (this.trappedFor < 2) return;
 	      this.game.publish('explosion', { x: this.x, y: this.y });
 	      this.kill(this.score * 5);
-	      return;
-	    }
-	
-	    var coords = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-	
-	    var blockedCoords = 0;
-	    for (var i = 0; i < coords.length; i++) {
-	      var e = map.entityAt(this.x + coords[i][0], this.y + coords[i][1]);
-	      if (e && e.canSquash || !map.isWithin(this.x + coords[i][0], this.y + coords[i][1])) {
-	        blockedCoords++;
-	      }
-	    }
-	
-	    if (blockedCoords == coords.length) {
-	      console.log("uhu, I'm trapped!", this);
-	      this.isTrapped = true;
-	      this.sleep = 2;
 	      return;
 	    }
 	
@@ -6096,26 +6165,10 @@
 	    }
 	
 	    // trapped?
-	    if (this.isTrapped) {
+	    if (this.checkIfTrapped(step)) {
+	      if (this.trappedFor < 2) return;
 	      this.game.publish('explosion', { x: this.x, y: this.y });
 	      this.kill(this.score * 5);
-	      return;
-	    }
-	
-	    var coords = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-	
-	    var blockedCoords = 0;
-	    for (var i = 0; i < coords.length; i++) {
-	      var e = map.entityAt(this.x + coords[i][0], this.y + coords[i][1]);
-	      if (e && e.canSquash || !map.isWithin(this.x + coords[i][0], this.y + coords[i][1])) {
-	        blockedCoords++;
-	      }
-	    }
-	
-	    if (blockedCoords == coords.length) {
-	      console.log("uhu, I'm trapped!", this);
-	      this.isTrapped = true;
-	      this.sleep = 2;
 	      return;
 	    }
 	
@@ -6559,7 +6612,7 @@
 	  //TODO: make sure player is not surrounded by HEAVY_BOXes
 	
 	  // place monsters
-	  var MONSTERS = ['S', 'G', 'Z'];
+	  var MONSTERS = ['S', 'G', 'Z', 'E'];
 	  MONSTERS.forEach(function (type) {
 	    var count = level.monsters[type] || 0;
 	    while (count > 0) {
@@ -6975,6 +7028,7 @@
 	    });
 	
 	    this.subscribe('kill', function (monster, score) {
+	      console.log('kill listener', monster.isDead, monster.x, monster.y, _this.map.entityAt(monster.x, monster.y));
 	      // update player score
 	      _this.score += score;
 	
@@ -7259,7 +7313,7 @@
 	    }
 	
 	    // animate opacity
-	    this.overlay.alpha = this.timeLeft / this.duration;
+	    this.overlay.alpha = Math.max(0, 0.5 - this.timeLeft / this.duration);
 	  },
 	
 	  cleanup: function cleanup() {
@@ -7284,6 +7338,7 @@
 	      this.up = false;
 	      this.down = false;
 	      this.pause = false;
+	      this.start = false;
 	      this.any = false;
 	      this.key = false;
 	    }
@@ -7351,10 +7406,12 @@
 	        this.input.up = pressed;ev.preventDefault();break;
 	      case KEY.DOWN:
 	        this.input.down = pressed;ev.preventDefault();break;
-	      case KEY.P:
+	      case KEY.SPACE:
 	        this.input.pause = pressed;ev.preventDefault();break;
 	      //default: console.log('onkey',key,pressed)
 	    }
+	
+	    this.input.start = this.input.pause;
 	  }
 	};
 
@@ -7510,6 +7567,21 @@
 	  return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
 	}
 	
+	var addSpriteToMonster = function addSpriteToMonster(monster) {
+	  if (monster.sprite) return;
+	
+	  var SPRITES = {};
+	  SPRITES[_entities.ENTITY.SNAKE] = 'assets/snake_01.png';
+	  SPRITES[_entities.ENTITY.ZOMBIE] = 'assets/zombie_01.png';
+	  SPRITES[_entities.ENTITY.GRUE] = 'assets/grue_01.png';
+	  SPRITES[_entities.ENTITY.EGG] = 'assets/egg_01.png';
+	
+	  monster.sprite = PIXI.Sprite.fromImage(SPRITES[monster.type]);
+	
+	  monster.sprite.position.x = monster.x * TILE_WIDTH;
+	  monster.sprite.position.y = monster.y * TILE_HEIGHT;
+	};
+	
 	var updateSpritePosition = function updateSpritePosition(entity, dt) {
 	  var fps = 60;
 	  var speed = 18 * TILE_WIDTH; // pixels per second
@@ -7621,17 +7693,8 @@
 	    // monsters
 	    for (var i = 0; i < monsters.length; i++) {
 	      var monster = monsters[i];
-	
-	      var SPRITES = {};
-	      SPRITES[_entities.ENTITY.SNAKE] = 'assets/snake_01.png';
-	      SPRITES[_entities.ENTITY.ZOMBIE] = 'assets/zombie_01.png';
-	      SPRITES[_entities.ENTITY.GRUE] = 'assets/grue_01.png';
-	
-	      monster.sprite = PIXI.Sprite.fromImage(SPRITES[monster.type]);
-	
+	      addSpriteToMonster(monster);
 	      this.stage.addChild(monster.sprite);
-	      monster.sprite.position.x = monster.x * TILE_WIDTH;
-	      monster.sprite.position.y = monster.y * TILE_HEIGHT;
 	    }
 	
 	    // player
@@ -7689,6 +7752,12 @@
 	        continue;
 	      }
 	
+	      // check if monster have an sprite (spawned?)
+	      if (!entity.sprite) {
+	        addSpriteToMonster(entity);
+	        this.stage.addChild(entity.sprite);
+	      }
+	
 	      updateSpritePosition(entity, dt);
 	
 	      // TODO: layer on effect instead
@@ -7696,6 +7765,8 @@
 	        if (!entity.sprite.filters) {
 	          entity.sprite.filters = [new PIXI.filters.InvertFilter()];
 	        }
+	      } else {
+	        entity.sprite.filters = null;
 	      }
 	    }
 	
@@ -7763,7 +7834,7 @@
 	  },
 	
 	  input: function input(_input) {
-	    if (_input.any) {
+	    if (_input.pause) {
 	      console.log('un-pausing!');
 	      this.game.mode.resume();
 	    }
@@ -7795,14 +7866,14 @@
 	    // this.stage.addChild(sprite)
 	
 	    // border
-	    var border = new PIXI.Graphics();
-	    border.lineStyle(2, 0x00ff, 1);
-	    // sprite.beginFill(0xff0000, 1)
-	    border.drawRect(1, 1, this.game.renderer.stage.width, this.game.renderer.stage.height);
-	    this.stage.addChild(border);
+	    // let border = new PIXI.Graphics()
+	    // border.lineStyle(2, 0x00ff, 1)
+	    // // sprite.beginFill(0xff0000, 1)
+	    // border.drawRect(1, 1, this.game.renderer.stage.width, this.game.renderer.stage.height)
+	    // this.stage.addChild(border)
 	
 	    // debug
-	    this.text = new PIXI.Text('Press any key to continue.', { font: '34px MiniSet2', fill: 0xaaaaff, align: 'left' });
+	    this.text = new PIXI.Text('Got something better to do?', { font: '34px MiniSet2', fill: 0xaaaaff, align: 'left' });
 	    this.text.position.x = this.game.renderer.stage.width / 2;
 	    //this.text.position.y = this.game.renderer.stage.height / 2
 	    this.text.position.y = this.game.renderer.stage.height;
@@ -7880,7 +7951,7 @@
 	  },
 	
 	  input: function input(_input) {
-	    if (_input.any) {
+	    if (_input.pause) {
 	      console.log('next level!');
 	      _input.clear();
 	      // this.game.hideModal()
@@ -7899,7 +7970,7 @@
 	    this.stage = new PIXI.Container();
 	
 	    // debug
-	    this.text = new PIXI.Text('Level ' + (this.game.level + 1), { font: '34px MiniSet2', fill: 0xaaaaff, align: 'left' });
+	    this.text = new PIXI.Text('Level ' + (this.game.level + 1) + ' \n Press Start to play', { font: '34px MiniSet2', fill: 0xaaaaff, align: 'center' });
 	    this.text.position.x = this.game.renderer.stage.width / 2;
 	    this.text.position.y = this.game.renderer.stage.height / 2;
 	    this.text.anchor.set(0.5, 0.5);
@@ -7932,7 +8003,7 @@
 	  },
 	
 	  input: function input(_input) {
-	    if (_input.any) {
+	    if (_input.pause) {
 	      _input.clear();
 	      this.game.mode.finish();
 	    }
@@ -7976,12 +8047,12 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var generated = [{ name: 'Generated 1', box: 0.45, heavyBox: 0, monsters: { 'S': 1, 'G': 0, 'Z': 0 } }, { name: 'Generated 2', box: 0.45, heavyBox: 0.05, monsters: { 'S': 1, 'G': 0, 'Z': 2 } }, { name: 'Generated 3', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 2 } }, { name: 'Generated 4', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 3 } }, { name: 'Generated 5', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 2 } }, { name: 'Generated 6', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 3 } }, { name: 'Generated 7', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 2 } }, { name: 'Generated 8', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3 } }, { name: 'Generated 9', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3 } }, { name: 'Generated 10', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5 } }];
+	var generated = [{ name: 'Generated 1', box: 0.45, heavyBox: 0, monsters: { 'S': 1, 'G': 0, 'Z': 0 } }, { name: 'Generated 2', box: 0.45, heavyBox: 0.05, monsters: { 'S': 1, 'G': 0, 'Z': 2, 'E': 0 } }, { name: 'Generated 3', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 2, 'E': 0 } }, { name: 'Generated 4', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 3, 'E': 0 } }, { name: 'Generated 5', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 2, 'E': 0 } }, { name: 'Generated 6', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 3, 'E': 1 } }, { name: 'Generated 7', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 2, 'E': 2 } }, { name: 'Generated 8', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3, 'E': 3 } }, { name: 'Generated 9', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3, 'E': 3 } }, { name: 'Generated 10', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }];
 	
 	exports.default = [generated[0], generated[1], generated[2], generated[3], generated[4], generated[5], generated[6], generated[7], generated[8], generated[9], {
 	  name: 'Level 1',
 	  // max time etc
-	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....b.bbbbbbbb\nb......bB......b....S.b.......\nb...............bbbbbbbbbbbbbb\n...................b...b......\n........b.......b.bbbbbb......\n.......b..............b.......\n........b...........b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
+	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bB......b....bGGG......\nb...............bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbbbbb......\n.......b...........bGbb.......\n........b.....E....@b..b......\nb.............b......b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
 	}, {
 	  name: 'Level 2',
 	  // max time etc
