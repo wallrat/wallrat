@@ -5523,6 +5523,7 @@
 	    this.levelTimeSpent = 0;
 	    this.levelTimeBonus = 0;
 	    this.levelMaxTime = _levels2.default[this.level].levelMaxTime || 60;
+	    this.multipleKillCounter = 0;
 	
 	    // clear out effects
 	    this.effects = null;
@@ -7035,7 +7036,22 @@
 	      // update player score
 	      _this.score += score;
 	
-	      // add some time bonus
+	      // add time bonus if any
+	      if (_this.levelTimeSpent - _this.lastKillTime < 1) {
+	        _this.multipleKillCounter += 1;
+	      } else {
+	        _this.multipleKillCounter = 1;
+	      }
+	      _this.lastKillTime = _this.levelTimeSpent;
+	
+	      if (_this.multipleKillCounter > 1) {
+	        var bonus = _this.multipleKillCounter * 500;
+	        _this.score += bonus;
+	        _this.addEffect(_score2.default.create(_this.player, bonus));
+	        console.log('multi kill bonus!', _this.multipleKillCounter, bonus);
+	      }
+	
+	      // add some bonus time
 	      _this.levelTimeBonus += 10;
 	
 	      // effects
