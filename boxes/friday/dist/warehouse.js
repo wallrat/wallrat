@@ -5652,13 +5652,12 @@
 	
 	var _levelGenerator = __webpack_require__(198);
 	
+	var _constants = __webpack_require__(197);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	var WIDTH = 30;
-	var HEIGHT = 19;
-	
-	// Iphone 4 640x960 (320x480 16x16 = 20*30)
-	// Iphone 5 640x1136 (320x568 16x16 = 20*35.5 or x margin of 88)
+	console.log('WIDTH', _constants.MAP_WIDTH);
+	console.log('HEIGHT', _constants.MAP_HEIGHT);
 	
 	var sourceToEntity = {
 	  '.': false,
@@ -5674,12 +5673,12 @@
 	
 	// TODO: remove
 	function posToIndex(x, y) {
-	  return y * WIDTH + x;
+	  return y * _constants.MAP_WIDTH + x;
 	}
 	
 	function indexToPos(index) {
-	  var y = Math.floor(index / WIDTH);
-	  var x = index - y * WIDTH;
+	  var y = Math.floor(index / _constants.MAP_WIDTH);
+	  var x = index - y * _constants.MAP_WIDTH;
 	  return [x, y];
 	}
 	
@@ -5741,6 +5740,49 @@
 	  tryMove: function tryMove(entity, x, y) {
 	    var other = this.entityAt(x, y);
 	    if (!other && this.isWithin(x, y)) {
+	      return true;
+	    } else {
+	      return false;
+	    }
+	  },
+	
+	  tryPush: function tryPush(e, dx, dy) {
+	    // try to move e
+	    var tx = e.x + dx;
+	    var ty = e.y + dy;
+	
+	    // not within map -> squash or false
+	    if (!this.isWithin(tx, ty)) {
+	      if (e.isSquashable) {
+	        e.squash();
+	        return true;
+	      }
+	      return false;
+	    }
+	
+	    // empty -> move if movable ?
+	    var t = this.entityAt(tx, ty);
+	    if (!t) {
+	      // movable ?
+	      if (!e.isMovable) return false;
+	
+	      // move
+	      this.move(e, tx, ty);
+	      return true;
+	    }
+	
+	    // not empty -> squashable -> squash
+	    if (e.isSquashable) {
+	      e.squash();
+	      return true;
+	    }
+	
+	    // movable ?
+	    if (!e.isMovable) return false;
+	
+	    // try to push whatever is in the way
+	    if (this.tryPush(t, dx, dy)) {
+	      this.move(e, tx, ty);
 	      return true;
 	    } else {
 	      return false;
@@ -5830,8 +5872,8 @@
 	    // generate map
 	    var source = level.map ? level.map : (0, _levelGenerator.generate)(level);
 	
-	    this.width = WIDTH;
-	    this.height = HEIGHT;
+	    this.width = _constants.MAP_WIDTH;
+	    this.height = _constants.MAP_HEIGHT;
 	    this.source = source;
 	
 	    var pos = 0;
@@ -5863,7 +5905,7 @@
 	      }
 	    }
 	
-	    if (pos != WIDTH * HEIGHT) {
+	    if (pos != _constants.MAP_WIDTH * _constants.MAP_HEIGHT) {
 	      throw new Error('bad map');
 	    }
 	
@@ -5888,6 +5930,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+	
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 	
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
@@ -5973,6 +6017,27 @@
 	      return false;
 	    }
 	
+	    // Strong monsters can push light boxes out of the way
+	    if (this.isStrong) {
+	      var coords = _math2.default.shuffle(_constants.NEAR_COORDS.slice());
+	      for (var i = 0; i < coords.length; i++) {
+	        var _coords$i = _slicedToArray(coords[i], 2);
+	
+	        var dx = _coords$i[0];
+	        var dy = _coords$i[1];
+	
+	        var x = this.x + dx;
+	        var y = this.y + dy;
+	        var other = map.entityAt(x, y);
+	        if (other && other.isMovable && map.tryPush(other, dx, dy)) {
+	          map.move(this, x, y);
+	          this.think = 1;
+	          break;
+	        }
+	      }
+	    }
+	
+	    // trapped!
 	    if (!this.isTrapped) console.log("uhu, I'm trapped!", this);
 	
 	    this.isTrapped = true;
@@ -6086,20 +6151,17 @@
 	  type: ENTITY.GRUE,
 	  name: 'Grue',
 	  score: 500,
-	  sleep: 1,
+	  think: 1,
 	
 	  update: function update(step) {
 	    var map = this.game.map;
 	
 	    if (this.isDead) return;
 	
-	    // TODO: rename this.sleep to this.think
 	    // dont bother trying to update a monster that is still 'thinking'
-	    // if (this.thinking && --this.thinking)
-	    //   return;
-	    if (this.sleep) {
-	      this.sleep = this.sleep - step;
-	      if (this.sleep > 0) return;
+	    if (this.think) {
+	      this.think = this.think - step;
+	      if (this.think > 0) return;
 	    }
 	
 	    // trapped?
@@ -6113,7 +6175,7 @@
 	    // attack?
 	    if (map.nextTo(this, map.player)) {
 	      this.game.publish('attack', this, map.player);
-	      this.sleep = 1;
+	      this.think = 1;
 	      return;
 	    }
 	
@@ -6127,19 +6189,19 @@
 	      if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
 	        map.move(this, this.path[1].x, this.path[1].y);
 	      }
-	      this.sleep = 1;
+	      this.think = 0.9;
 	      return;
 	    }
 	
 	    // What do grues do when they idle?
 	    if (_math2.default.random(0, 100) < 20) {
 	      map.moveRandom(this);
-	      this.sleep = 1;
+	      this.think = 1;
 	      return;
 	    }
 	
 	    // some default think time
-	    this.sleep = 1;
+	    this.think = 1;
 	  }
 	};
 	
@@ -6147,20 +6209,20 @@
 	  type: ENTITY.ZOMBIE,
 	  name: 'Zombie',
 	  score: 300,
-	  sleep: 1,
+	  think: 1,
 	
 	  update: function update(step) {
 	    var map = this.game.map;
 	
 	    if (this.isDead) return;
 	
-	    // TODO: rename this.sleep to this.think
+	    // TODO: rename this.think to this.think
 	    // dont bother trying to update a monster that is still 'thinking'
 	    // if (this.thinking && --this.thinking)
 	    //   return;
-	    if (this.sleep) {
-	      this.sleep = this.sleep - step;
-	      if (this.sleep > 0) return;
+	    if (this.think) {
+	      this.think = this.think - step;
+	      if (this.think > 0) return;
 	    }
 	
 	    // trapped?
@@ -6174,7 +6236,7 @@
 	    // attack?
 	    if (map.nextTo(this, map.player)) {
 	      this.game.publish('attack', this, map.player);
-	      this.sleep = 1;
+	      this.think = 1;
 	      return;
 	    }
 	
@@ -6188,7 +6250,7 @@
 	      if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
 	        map.move(this, this.path[1].x, this.path[1].y);
 	      }
-	      this.sleep = 1;
+	      this.think = 1;
 	      return;
 	    }
 	
@@ -6196,12 +6258,12 @@
 	    // TODO: move in circle
 	    if (_math2.default.random(0, 100) < 20) {
 	      map.moveRandom(this);
-	      this.sleep = 1;
+	      this.think = 1;
 	      return;
 	    }
 	
 	    // some default think time
-	    this.sleep = 1;
+	    this.think = 1;
 	  }
 	};
 
@@ -6332,6 +6394,8 @@
 	    return r << 16 | g << 8 | b;
 	  }
 	};
+	
+	window.math = math;
 	
 	exports.default = math;
 
@@ -6532,7 +6596,17 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	// Iphone 4 640x960 (320x480 16x16 = 20*30)
+	// Iphone 5 640x1136 (320x568 16x16 = 20*35.5 or x margin of 88)
+	
+	// map
+	var MAP_WIDTH = exports.MAP_WIDTH = 30;
+	var MAP_HEIGHT = exports.MAP_HEIGHT = 19;
 	var NEAR_COORDS = exports.NEAR_COORDS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+	
+	// graphics
+	var TILE_WIDTH = exports.TILE_WIDTH = 16;
+	var TILE_HEIGHT = exports.TILE_HEIGHT = 16;
 
 /***/ },
 /* 198 */
@@ -6561,14 +6635,10 @@
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	// TODO: duplicated in map, move to consts
-	var WIDTH = 30;
-	var HEIGHT = 19;
-	
 	var defaults = {
 	  // size
-	  width: WIDTH,
-	  height: HEIGHT,
+	  width: _constants.MAP_WIDTH,
+	  height: _constants.MAP_HEIGHT,
 	  // player
 	  // terrain
 	  box: 0.4,
@@ -6832,6 +6902,8 @@
 
 	'use strict';
 	
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+	
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
@@ -6854,55 +6926,16 @@
 	
 	var _score2 = _interopRequireDefault(_score);
 	
+	var _math = __webpack_require__(195);
+	
+	var _math2 = _interopRequireDefault(_math);
+	
+	var _constants = __webpack_require__(197);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	exports.default = {
-	  pushEntity: function pushEntity(e, dx, dy) {
-	    var map = this.map;
-	    //console.log('pushEntity ',e.x,e.y,e)
-	
-	    // try to move e
-	    var tx = e.x + dx;
-	    var ty = e.y + dy;
-	
-	    // not within map -> squash or false
-	    if (!map.isWithin(tx, ty)) {
-	      if (e.isSquashable) {
-	        e.squash();
-	        return true;
-	      }
-	      return false;
-	    }
-	
-	    // empty -> move if movable ?
-	    var t = map.entityAt(tx, ty);
-	    if (!t) {
-	      // movable ?
-	      if (!e.isMovable) return false;
-	
-	      // move
-	      map.move(e, tx, ty);
-	      return true;
-	    }
-	
-	    // not empty -> squashable -> squash
-	    if (e.isSquashable) {
-	      e.squash();
-	      return true;
-	    }
-	
-	    // movable ?
-	    if (!e.isMovable) return false;
-	
-	    // try to push whatever is in the way
-	    if (this.pushEntity(t, dx, dy)) {
-	      map.move(e, tx, ty);
-	      return true;
-	    } else {
-	      return false;
-	    }
-	  },
-	
+	  // TODO: refactor to player.js
 	  movePlayer: function movePlayer(dx, dy) {
 	    var map = this.map;
 	    var player = this.player;
@@ -6922,7 +6955,7 @@
 	        this.publish('attack', other, player);
 	      }
 	
-	      if (other.isMovable && this.pushEntity(other, dx, dy)) {
+	      if (other.isMovable && map.tryPush(other, dx, dy)) {
 	        map.move(player, x, y);
 	      }
 	    }
@@ -7051,9 +7084,21 @@
 	
 	      console.log('kaboom!', x, y);
 	      // remove a random cell
-	      var e = _this.map.entityAt(x + 1, y);
+	
+	      var _math$randomChoice = _math2.default.randomChoice(_constants.NEAR_COORDS);
+	
+	      var _math$randomChoice2 = _slicedToArray(_math$randomChoice, 2);
+	
+	      var dx = _math$randomChoice2[0];
+	      var dy = _math$randomChoice2[1];
+	
+	      var e = _this.map.entityAt(x + dx, y + dy);
 	      if (e) {
-	        _this.map.remove(e);
+	        if (e.isKillable) {
+	          e.kill();
+	        } else {
+	          _this.map.remove(e);
+	        }
 	      }
 	
 	      // effects
@@ -7374,13 +7419,16 @@
 
 /***/ },
 /* 204 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	
+	var _constants = __webpack_require__(197);
+	
 	exports.default = {
 	  create: function create(_ref, score) {
 	    var x = _ref.x;
@@ -7401,8 +7449,8 @@
 	    this.timeLeft = this.duration;
 	
 	    this.stats = new PIXI.Text('+' + this.score, { font: '14px MiniSet2', fill: 0xffffff, align: 'left' });
-	    this.stats.position.x = this.x * 16;
-	    this.stats.position.y = this.y * 16;
+	    this.stats.position.x = this.x * _constants.TILE_WIDTH;
+	    this.stats.position.y = this.y * _constants.TILE_HEIGHT;
 	    this.stage.addChild(this.stats);
 	  },
 	
@@ -7660,12 +7708,11 @@
 	
 	var _entities = __webpack_require__(194);
 	
+	var _constants = __webpack_require__(197);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
-	
-	var TILE_WIDTH = 16;
-	var TILE_HEIGHT = 16;
 	
 	//TODO: remove debug or move to xxx
 	function timestamp() {
@@ -7683,16 +7730,16 @@
 	
 	  monster.sprite = PIXI.Sprite.fromImage(SPRITES[monster.type]);
 	
-	  monster.sprite.position.x = monster.x * TILE_WIDTH;
-	  monster.sprite.position.y = monster.y * TILE_HEIGHT;
+	  monster.sprite.position.x = monster.x * _constants.TILE_WIDTH;
+	  monster.sprite.position.y = monster.y * _constants.TILE_HEIGHT;
 	};
 	
 	var updateSpritePosition = function updateSpritePosition(entity, dt) {
 	  var fps = 60;
-	  var speed = 18 * TILE_WIDTH; // pixels per second
+	  var speed = 18 * _constants.TILE_WIDTH; // pixels per second
 	
-	  var tx = entity.x * TILE_WIDTH;
-	  var ty = entity.y * TILE_HEIGHT;
+	  var tx = entity.x * _constants.TILE_WIDTH;
+	  var ty = entity.y * _constants.TILE_HEIGHT;
 	
 	  var sx = entity.sprite.position.x;
 	  var sy = entity.sprite.position.y;
@@ -7771,12 +7818,18 @@
 	    this.screen.addChild(this.stage);
 	
 	    // make room for statusbar
-	    this.stage.position.y = 16;
+	    this.stage.position.y = _constants.TILE_HEIGHT;
 	
 	    var map = this.game.map;
 	    var player = map.player;
 	    var things = map.things;
 	    var monsters = map.monsters;
+	
+	    // background
+	    // this.background = PIXI.extras.TilingSprite.fromImage('assets/bg_32x32_01.png',32,32)
+	    // this.background.width = TILE_WIDTH * map.width
+	    // this.background.height = TILE_HEIGHT * map.height
+	    // this.stage.addChild(this.background)
 	
 	    // things
 	    for (var i = 0; i < things.length; i++) {
@@ -7791,8 +7844,8 @@
 	        thing.sprite.visible = false;
 	      }
 	
-	      thing.sprite.position.x = thing.x * TILE_WIDTH;
-	      thing.sprite.position.y = thing.y * TILE_HEIGHT;
+	      thing.sprite.position.x = thing.x * _constants.TILE_WIDTH;
+	      thing.sprite.position.y = thing.y * _constants.TILE_HEIGHT;
 	    }
 	
 	    // monsters
@@ -7806,12 +7859,12 @@
 	    // player.sprite = new PIXI.Sprite(box(0xAA22FF))
 	    player.sprite = new PIXI.Sprite.fromImage('assets/player_02.png');
 	    this.stage.addChild(player.sprite);
-	    player.sprite.position.x = player.x * TILE_WIDTH;
-	    player.sprite.position.y = player.y * TILE_HEIGHT;
+	    player.sprite.position.x = player.x * _constants.TILE_WIDTH;
+	    player.sprite.position.y = player.y * _constants.TILE_HEIGHT;
 	
 	    // debug
 	    this.debug = new PIXI.Text('console', { font: '14px MiniSet2', fill: 0xAAAAAA, align: 'left' });
-	    this.debug.position.x = 30 * TILE_WIDTH + 50;
+	    this.debug.position.x = 30 * _constants.TILE_WIDTH + 50;
 	    this.debug.position.y = 10;
 	    //this.stage.addChild(this.debug)
 	
@@ -8155,7 +8208,7 @@
 	exports.default = [generated[0], generated[1], generated[2], generated[3], generated[4], generated[5], generated[6], generated[7], generated[8], generated[9], generated[10], generated[11], generated[12], generated[13], generated[14], {
 	  name: 'Level 1',
 	  // max time etc
-	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bB......b....bGGG......\nb...............bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbbbbb......\n.......b...........bGbb.......\n........b.....E....@b..b......\nb.............b......b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
+	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bB......b....bGGG......\nb...............bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbBbbb......\n.......b...........BGEB.......\n........b.....E.....b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
 	}, {
 	  name: 'Level 2',
 	  // max time etc
