@@ -5395,7 +5395,6 @@
 	//   - Loose
 	//   - Help? (paused modal?)
 	
-	var INITIAL_PLAYER_HEALTH = 5;
 	var INITIAL_PLAYER_LIVES = 3;
 	
 	var Game = {
@@ -5404,11 +5403,10 @@
 	
 	  // state
 	  debug: {},
-	  player: { name: 'Player', lives: 3 },
+	  player: { name: 'Player', lives: 3, timeLeft: 0 },
 	  totalTimeSpent: 0,
 	  // sessionTimeSpent: 0,
 	  levelTimeSpent: 0,
-	  levelTimeBonus: 0,
 	
 	  // resources
 	  renderer: Object.create(_pixiRenderer2.default),
@@ -5420,7 +5418,6 @@
 	    this.level = 0;
 	    this.score = 0;
 	
-	    this.player.hp = INITIAL_PLAYER_HEALTH;
 	    this.player.lives = INITIAL_PLAYER_LIVES;
 	
 	    this.debug = {};
@@ -5521,8 +5518,7 @@
 	
 	    // reset stats
 	    this.levelTimeSpent = 0;
-	    this.levelTimeBonus = 0;
-	    this.levelMaxTime = _levels2.default[this.level].levelMaxTime || 60;
+	    this.player.timeLeft = _levels2.default[this.level].levelMaxTime || 60;
 	    this.multipleKillCounter = 0;
 	
 	    // clear out effects
@@ -5551,7 +5547,6 @@
 	    console.log('playerDied', event, from, to, reason);
 	    this.player.lives -= 1;
 	    if (this.player.lives > 0) {
-	      this.player.hp = INITIAL_PLAYER_HEALTH;
 	      this.mode.load(this.level);
 	    } else {
 	      this.mode.lose(reason);
@@ -6086,6 +6081,7 @@
 	  type: ENTITY.SNAKE,
 	  name: 'Snake',
 	  score: 100,
+	  damage: 0.25,
 	
 	  update: function update(step) {
 	    var map = this.game.map;
@@ -6151,6 +6147,7 @@
 	  type: ENTITY.GRUE,
 	  name: 'Grue',
 	  score: 500,
+	  damage: 0.35,
 	  think: 1,
 	
 	  update: function update(step) {
@@ -6209,6 +6206,7 @@
 	  type: ENTITY.ZOMBIE,
 	  name: 'Zombie',
 	  score: 300,
+	  damage: 0.25,
 	  think: 1,
 	
 	  update: function update(step) {
@@ -6240,18 +6238,33 @@
 	      return;
 	    }
 	
-	    // -- Move Zombie --
-	
+	    // Move Zombie
 	    // Zombies find ther victims by sight.
 	    // We use map.canSeePlayer wich uses a simple line algo
-	    this.path = map.canSeePlayer(this, 10);
-	    if (this.path) {
-	      console.log('I can see a player', this.path.length);
-	      if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
-	        map.move(this, this.path[1].x, this.path[1].y);
+	
+	    // arrived at destination?
+	    if (this.x == this.targetX && this.y == this.targetY) {
+	      this.targetX = null;
+	      this.targetY = null;
+	    }
+	
+	    // TODO: canSeePlayer don't need to return path
+	    if (map.canSeePlayer(this, 10)) {
+	      this.targetX = map.player.x;
+	      this.targetY = map.player.y;
+	      console.log('I can see a player', this.targetX, this.targetY);
+	    }
+	
+	    // TODO: we don't need to recalculate path each frame
+	    if (this.targetX && this.targetY) {
+	      this.path = map.pathBetween(this.x, this.y, this.targetX, this.targetY);
+	      if (this.path.length > 0) {
+	        if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
+	          map.move(this, this.path[1].x, this.path[1].y);
+	        }
+	        this.think = 1.2;
+	        return;
 	      }
-	      this.think = 1;
-	      return;
 	    }
 	
 	    // What do zombies do when they idle?
@@ -7046,9 +7059,10 @@
 	    // Status
 	    this.totalTimeSpent += step;
 	    this.levelTimeSpent += step;
+	    this.player.timeLeft -= step;
 	
 	    // time's up?
-	    if (this.levelTimeSpent > this.levelMaxTime + this.levelTimeBonus) {
+	    if (this.player.timeLeft < 0) {
 	      this.mode.die('Too slow, time is precious!');
 	      return;
 	    }
@@ -7125,8 +7139,9 @@
 	        console.log('multi kill bonus!', _this.multipleKillCounter, bonus);
 	      }
 	
-	      // add some bonus time
-	      _this.levelTimeBonus += 10;
+	      // add some bonus time (base on possible damage for now)
+	      // TODO: add effect for time bonus
+	      _this.player.timeLeft += 25 * (monster.damage || 0.1);
 	
 	      // effects
 	      _this.addEffect(_score2.default.create(monster, score));
@@ -7144,18 +7159,21 @@
 	      });
 	    });
 	
-	    this.subscribe('attack', function (attacker, target) {
+	    this.subscribe('attack', function (monster, player) {
 	      // decide if it's a hit or miss
+	
 	      // do damage
-	      console.log(attacker.name, 'hits', target.name);
-	      target.hp = target.hp - 1;
+	      console.log(monster.name, 'hits', player.name);
+	      player.timeLeft = player.timeLeft * monster.damage;
 	
 	      // effects
+	      //TODO: add effect that highlights time damage
 	      _this.addEffect(_hit2.default.create());
 	
 	      // check if player is dead
-	      if (target.hp === 0) {
-	        _this.mode.die('Killed by a ' + attacker.name);
+	      // TODO: duplicted in update() ??
+	      if (player.timeLeft < 0) {
+	        _this.mode.die('Killed by a ' + monster.name);
 	      }
 	    });
 	  }
@@ -7866,7 +7884,7 @@
 	    this.debug = new PIXI.Text('console', { font: '14px MiniSet2', fill: 0xAAAAAA, align: 'left' });
 	    this.debug.position.x = 30 * _constants.TILE_WIDTH + 50;
 	    this.debug.position.y = 10;
-	    //this.stage.addChild(this.debug)
+	    this.stage.addChild(this.debug);
 	
 	    // stats
 	    this.stats = new PIXI.Text('0', { font: '14px MiniSet2', fill: 0x5b6ee1, align: 'left' });
@@ -7948,7 +7966,8 @@
 	    }
 	
 	    // score
-	    this.stats.text = 'Level ' + (this.game.level + 1) + '   ' + 'Score ' + this.game.score + '   ' + 'Time ' + Math.floor(this.game.levelMaxTime - this.game.levelTimeSpent + this.game.levelTimeBonus) + '   ' + 'Health ' + this.game.player.hp + '   ' + 'Lives ' + this.game.player.lives;
+	    var timeLeft = Math.ceil(Math.max(0, this.game.player.timeLeft));
+	    this.stats.text = 'Level ' + (this.game.level + 1) + '   ' + 'Score ' + this.game.score + '   ' + 'Lives ' + this.game.player.lives + '   ' + 'Time ' + timeLeft;
 	
 	    // debug
 	    var game = player.game;
@@ -8205,7 +8224,27 @@
 	});
 	var generated = [{ name: 'Generated 1', box: 0.45, heavyBox: 0, monsters: { 'S': 1, 'G': 0, 'Z': 0 } }, { name: 'Generated 2', box: 0.45, heavyBox: 0.05, monsters: { 'S': 1, 'G': 0, 'Z': 2, 'E': 0 } }, { name: 'Generated 3', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 2, 'E': 0 } }, { name: 'Generated 4', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 3, 'E': 0 } }, { name: 'Generated 5', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 2, 'E': 0 } }, { name: 'Generated 6', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 3, 'E': 1 } }, { name: 'Generated 7', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 2, 'E': 2 } }, { name: 'Generated 8', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3, 'E': 3 } }, { name: 'Generated 9', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3, 'E': 3 } }, { name: 'Generated 10', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 11', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 12', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 13', box: 0.60, heavyBox: 0.15, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 14', box: 0.60, heavyBox: 0.15, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 15', box: 0.60, heavyBox: 0.15, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }];
 	
-	exports.default = [generated[0], generated[1], generated[2], generated[3], generated[4], generated[5], generated[6], generated[7], generated[8], generated[9], generated[10], generated[11], generated[12], generated[13], generated[14], {
+	exports.default = [
+	// generated[0],
+	// generated[1],
+	// generated[2],
+	// generated[3],
+	// generated[4],
+	// generated[5],
+	// generated[6],
+	// generated[7],
+	// generated[8],
+	// generated[9],
+	// generated[10],
+	// generated[11],
+	// generated[12],
+	// generated[13],
+	// generated[14],
+	{
+	  name: 'Level 1',
+	  // max time etc
+	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bB......b....bGGG......\nb.......Z.......bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbBbbb......\n.......b...........B.EB.......\n........b...........b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
+	}, {
 	  name: 'Level 1',
 	  // max time etc
 	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bB......b....bGGG......\nb...............bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbBbbb......\n.......b...........BGEB.......\n........b.....E.....b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
