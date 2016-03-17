@@ -5325,47 +5325,47 @@
 	
 	var _map2 = _interopRequireDefault(_map);
 	
-	var _gamePlay = __webpack_require__(200);
+	var _gamePlay = __webpack_require__(204);
 	
 	var _gamePlay2 = _interopRequireDefault(_gamePlay);
 	
-	var _input = __webpack_require__(205);
+	var _input = __webpack_require__(209);
 	
 	var _input2 = _interopRequireDefault(_input);
 	
-	var _keyboard = __webpack_require__(206);
+	var _keyboard = __webpack_require__(210);
 	
 	var _keyboard2 = _interopRequireDefault(_keyboard);
 	
-	var _touch = __webpack_require__(207);
+	var _touch = __webpack_require__(211);
 	
 	var _touch2 = _interopRequireDefault(_touch);
 	
-	var _mixins = __webpack_require__(208);
+	var _mixins = __webpack_require__(212);
 	
-	var _gameLoop = __webpack_require__(209);
+	var _gameLoop = __webpack_require__(213);
 	
-	var _pixiRenderer = __webpack_require__(210);
+	var _pixiRenderer = __webpack_require__(214);
 	
 	var _pixiRenderer2 = _interopRequireDefault(_pixiRenderer);
 	
-	var _pause = __webpack_require__(211);
+	var _pause = __webpack_require__(215);
 	
 	var _pause2 = _interopRequireDefault(_pause);
 	
-	var _nextLevel = __webpack_require__(212);
+	var _nextLevel = __webpack_require__(216);
 	
 	var _nextLevel2 = _interopRequireDefault(_nextLevel);
 	
-	var _gameOver = __webpack_require__(213);
+	var _gameOver = __webpack_require__(217);
 	
 	var _gameOver2 = _interopRequireDefault(_gameOver);
 	
-	var _levels = __webpack_require__(214);
+	var _levels = __webpack_require__(218);
 	
 	var _levels2 = _interopRequireDefault(_levels);
 	
-	__webpack_require__(215);
+	__webpack_require__(219);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -5518,7 +5518,8 @@
 	
 	    // reset stats
 	    this.levelTimeSpent = 0;
-	    this.player.timeLeft = _levels2.default[this.level].levelMaxTime || 60;
+	    this.levelMaxTime = _levels2.default[this.level].levelMaxTime || 60;
+	    this.player.timeLeft = this.levelMaxTime;
 	    this.multipleKillCounter = 0;
 	
 	    // clear out effects
@@ -5645,7 +5646,7 @@
 	
 	var _math2 = _interopRequireDefault(_math);
 	
-	var _levelGenerator = __webpack_require__(198);
+	var _levelGenerator = __webpack_require__(202);
 	
 	var _constants = __webpack_require__(197);
 	
@@ -5661,6 +5662,7 @@
 	  'B': _entities.ENTITY.HEAVY_BOX,
 	  ',': _entities.ENTITY.VOID,
 	  'G': _entities.ENTITY.GRUE,
+	  'R': _entities.ENTITY.RAT,
 	  'S': _entities.ENTITY.SNAKE,
 	  'Z': _entities.ENTITY.ZOMBIE,
 	  'E': _entities.ENTITY.EGG
@@ -5892,7 +5894,7 @@
 	        this.player = {};
 	        this.player.x = _x2;
 	        this.player.y = y;
-	      } else if (type === _entities.ENTITY.GRUE || type === _entities.ENTITY.SNAKE || type === _entities.ENTITY.ZOMBIE || type == _entities.ENTITY.EGG) {
+	      } else if (type === _entities.ENTITY.RAT || type === _entities.ENTITY.GRUE || type === _entities.ENTITY.SNAKE || type === _entities.ENTITY.ZOMBIE || type == _entities.ENTITY.EGG) {
 	        this.monsters.push((0, _entities.createEntity)(type, _x2, y, game));
 	      } else if (type) {
 	        //TODO: remove special list of boxes? dead/alive instead?
@@ -5940,6 +5942,22 @@
 	
 	var _constants = __webpack_require__(197);
 	
+	var _grue = __webpack_require__(198);
+	
+	var _grue2 = _interopRequireDefault(_grue);
+	
+	var _zombie = __webpack_require__(199);
+	
+	var _zombie2 = _interopRequireDefault(_zombie);
+	
+	var _snake = __webpack_require__(200);
+	
+	var _snake2 = _interopRequireDefault(_snake);
+	
+	var _rat = __webpack_require__(201);
+	
+	var _rat2 = _interopRequireDefault(_rat);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	var ENTITY = exports.ENTITY = {
@@ -5950,6 +5968,7 @@
 	  GRUE: 10,
 	  SNAKE: 11,
 	  ZOMBIE: 12,
+	  RAT: 13,
 	  EGG: 20
 	};
 	
@@ -5979,7 +5998,6 @@
 	    // remove ourselfs from the map so we can move another entity
 	    // to this position the same tick (ie 'squash')
 	    this.game.map.remove(this);
-	
 	    this.game.publish('kill', this, score || this.score);
 	  }
 	};
@@ -6046,19 +6064,21 @@
 	function createEntity(type, x, y, game) {
 	  switch (type) {
 	    case ENTITY.BOX:
-	      return Object.assign({ x: x, y: y, game: game }, Box, Movable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, Box, Movable);
 	    case ENTITY.HEAVY_BOX:
-	      return Object.assign({ x: x, y: y, game: game }, Box, NotMovable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, Box, NotMovable);
 	    case ENTITY.VOID:
-	      return Object.assign({ x: x, y: y, game: game }, Void, NotMovable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, Void, NotMovable);
 	    case ENTITY.SNAKE:
-	      return Object.assign({ x: x, y: y, game: game }, Snake, NotMovable, Monster, Killable, Squashable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, _snake2.default, NotMovable, Monster, Killable, Squashable);
 	    case ENTITY.GRUE:
-	      return Object.assign({ x: x, y: y, game: game }, Grue, NotMovable, Monster, Killable, Squashable, Trappable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, _grue2.default, NotMovable, Monster, Killable, Squashable, Trappable);
+	    case ENTITY.RAT:
+	      return Object.assign({ type: type, x: x, y: y, game: game }, _rat2.default, NotMovable, Monster, Killable, Squashable, Trappable);
 	    case ENTITY.ZOMBIE:
-	      return Object.assign({ x: x, y: y, game: game }, Zombie, NotMovable, Monster, Killable, Squashable, Trappable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, _zombie2.default, NotMovable, Monster, Killable, Squashable, Trappable);
 	    case ENTITY.EGG:
-	      return Object.assign({ x: x, y: y, game: game }, Egg, NotMovable, Killable, Squashable);
+	      return Object.assign({ type: type, x: x, y: y, game: game }, Egg, NotMovable, Killable, Squashable);
 	  }
 	  throw new Error('createEntity for unknown type ' + type);
 	}
@@ -6067,46 +6087,15 @@
 	//TODO: move to modules
 	
 	var Void = {
-	  type: ENTITY.VOID,
 	  name: 'Void'
 	};
 	
 	var Box = {
-	  type: ENTITY.BOX,
 	  name: 'Box'
-	};
-	
-	// Snakes waits on a tile and attacks player when near
-	var Snake = {
-	  type: ENTITY.SNAKE,
-	  name: 'Snake',
-	  score: 100,
-	  damage: 0.25,
-	
-	  update: function update(step) {
-	    var map = this.game.map;
-	
-	    if (this.isDead) return;
-	
-	    if (this.think) {
-	      this.think = this.think - step;
-	      if (this.think > 0) return;
-	    }
-	
-	    // trapped?
-	
-	    // attack?
-	    if (map.nextTo(this, map.player)) {
-	      this.game.publish('attack', this, map.player);
-	      this.think = 2;
-	      return;
-	    }
-	  }
 	};
 	
 	// TODO: rename to xxx
 	var Egg = {
-	  type: ENTITY.EGG,
 	  name: 'Egg',
 	  score: 200,
 	  period: 10,
@@ -6140,143 +6129,6 @@
 	
 	    // reset
 	    this.nextSpawn = this.period;
-	  }
-	};
-	
-	var Grue = {
-	  type: ENTITY.GRUE,
-	  name: 'Grue',
-	  score: 500,
-	  damage: 0.35,
-	  think: 1,
-	
-	  update: function update(step) {
-	    var map = this.game.map;
-	
-	    if (this.isDead) return;
-	
-	    // dont bother trying to update a monster that is still 'thinking'
-	    if (this.think) {
-	      this.think = this.think - step;
-	      if (this.think > 0) return;
-	    }
-	
-	    // trapped?
-	    if (this.checkIfTrapped(step)) {
-	      if (this.trappedFor < 2) return;
-	      this.game.publish('explosion', { x: this.x, y: this.y });
-	      this.kill(this.score * 5);
-	      return;
-	    }
-	
-	    // attack?
-	    if (map.nextTo(this, map.player)) {
-	      this.game.publish('attack', this, map.player);
-	      this.think = 1;
-	      return;
-	    }
-	
-	    // -- Move Grue--
-	
-	    // Grues find their victims by smell.
-	    // To model this we use pathfinding with a max path length
-	    this.path = map.pathToPlayer(this);
-	    if (this.path.length > 0 && this.path.length < 10) {
-	      console.log('I smell a player', this.path.length);
-	      if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
-	        map.move(this, this.path[1].x, this.path[1].y);
-	      }
-	      this.think = 0.9;
-	      return;
-	    }
-	
-	    // What do grues do when they idle?
-	    if (_math2.default.random(0, 100) < 20) {
-	      map.moveRandom(this);
-	      this.think = 1;
-	      return;
-	    }
-	
-	    // some default think time
-	    this.think = 1;
-	  }
-	};
-	
-	var Zombie = {
-	  type: ENTITY.ZOMBIE,
-	  name: 'Zombie',
-	  score: 300,
-	  damage: 0.25,
-	  think: 1,
-	
-	  update: function update(step) {
-	    var map = this.game.map;
-	
-	    if (this.isDead) return;
-	
-	    // TODO: rename this.think to this.think
-	    // dont bother trying to update a monster that is still 'thinking'
-	    // if (this.thinking && --this.thinking)
-	    //   return;
-	    if (this.think) {
-	      this.think = this.think - step;
-	      if (this.think > 0) return;
-	    }
-	
-	    // trapped?
-	    if (this.checkIfTrapped(step)) {
-	      if (this.trappedFor < 2) return;
-	      this.game.publish('explosion', { x: this.x, y: this.y });
-	      this.kill(this.score * 5);
-	      return;
-	    }
-	
-	    // attack?
-	    if (map.nextTo(this, map.player)) {
-	      this.game.publish('attack', this, map.player);
-	      this.think = 1;
-	      return;
-	    }
-	
-	    // Move Zombie
-	    // Zombies find ther victims by sight.
-	    // We use map.canSeePlayer wich uses a simple line algo
-	
-	    // arrived at destination?
-	    if (this.x == this.targetX && this.y == this.targetY) {
-	      this.targetX = null;
-	      this.targetY = null;
-	    }
-	
-	    // TODO: canSeePlayer don't need to return path
-	    if (map.canSeePlayer(this, 10)) {
-	      this.targetX = map.player.x;
-	      this.targetY = map.player.y;
-	      console.log('I can see a player', this.targetX, this.targetY);
-	    }
-	
-	    // TODO: we don't need to recalculate path each frame
-	    if (this.targetX && this.targetY) {
-	      this.path = map.pathBetween(this.x, this.y, this.targetX, this.targetY);
-	      if (this.path.length > 0) {
-	        if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
-	          map.move(this, this.path[1].x, this.path[1].y);
-	        }
-	        this.think = 1.2;
-	        return;
-	      }
-	    }
-	
-	    // What do zombies do when they idle?
-	    // TODO: move in circle
-	    if (_math2.default.random(0, 100) < 20) {
-	      map.moveRandom(this);
-	      this.think = 1;
-	      return;
-	    }
-	
-	    // some default think time
-	    this.think = 1;
 	  }
 	};
 
@@ -6623,6 +6475,260 @@
 
 /***/ },
 /* 198 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = {
+	  name: 'Grue',
+	  score: 500,
+	  damage: 0.35,
+	  think: 1,
+	
+	  update: function update(step) {
+	    var map = this.game.map;
+	
+	    if (this.isDead) return;
+	
+	    // dont bother trying to update a monster that is still 'thinking'
+	    if (this.think) {
+	      this.think = this.think - step;
+	      if (this.think > 0) return;
+	    }
+	
+	    // trapped?
+	    if (this.checkIfTrapped(step)) {
+	      if (this.trappedFor < 2) return;
+	      this.game.publish('explosion', { x: this.x, y: this.y });
+	      this.kill(this.score * 5);
+	      return;
+	    }
+	
+	    // attack?
+	    if (map.nextTo(this, map.player)) {
+	      this.game.publish('attack', this, map.player);
+	      this.think = 1;
+	      return;
+	    }
+	
+	    // -- Move Grue--
+	
+	    // Grues find their victims by smell.
+	    // To model this we use pathfinding with a max path length
+	    this.path = map.pathToPlayer(this);
+	    if (this.path.length > 0 && this.path.length < 10) {
+	      console.log('I smell a player', this.path.length);
+	      if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
+	        map.move(this, this.path[1].x, this.path[1].y);
+	      }
+	      this.think = 0.9;
+	      return;
+	    }
+	
+	    // What do grues do when they idle?
+	    if (math.random(0, 100) < 20) {
+	      map.moveRandom(this);
+	      this.think = 1;
+	      return;
+	    }
+	
+	    // some default think time
+	    this.think = 1;
+	  }
+	};
+
+/***/ },
+/* 199 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = {
+	  name: 'Zombie',
+	  score: 300,
+	  damage: 0.25,
+	  think: 1,
+	
+	  update: function update(step) {
+	    var map = this.game.map;
+	
+	    if (this.isDead) return;
+	
+	    // TODO: rename this.think to this.think
+	    // dont bother trying to update a monster that is still 'thinking'
+	    // if (this.thinking && --this.thinking)
+	    //   return;
+	    if (this.think) {
+	      this.think = this.think - step;
+	      if (this.think > 0) return;
+	    }
+	
+	    // trapped?
+	    if (this.checkIfTrapped(step)) {
+	      if (this.trappedFor < 2) return;
+	      this.game.publish('explosion', { x: this.x, y: this.y });
+	      this.kill(this.score * 5);
+	      return;
+	    }
+	
+	    // attack?
+	    if (map.nextTo(this, map.player)) {
+	      this.game.publish('attack', this, map.player);
+	      this.think = 1;
+	      return;
+	    }
+	
+	    // Move Zombie
+	    // Zombies find ther victims by sight.
+	    // We use map.canSeePlayer wich uses a simple line algo
+	
+	    // arrived at destination?
+	    if (this.x == this.targetX && this.y == this.targetY) {
+	      this.targetX = null;
+	      this.targetY = null;
+	    }
+	
+	    // TODO: canSeePlayer don't need to return path
+	    if (map.canSeePlayer(this, 10)) {
+	      this.targetX = map.player.x;
+	      this.targetY = map.player.y;
+	      console.log('I can see a player', this.targetX, this.targetY);
+	    }
+	
+	    // TODO: we don't need to recalculate path each frame
+	    if (this.targetX && this.targetY) {
+	      this.path = map.pathBetween(this.x, this.y, this.targetX, this.targetY);
+	      if (this.path.length > 0) {
+	        if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
+	          map.move(this, this.path[1].x, this.path[1].y);
+	        }
+	        this.think = 1.2;
+	        return;
+	      }
+	    }
+	
+	    // What do zombies do when they idle?
+	    // TODO: move in circle
+	    if (math.random(0, 100) < 20) {
+	      map.moveRandom(this);
+	      this.think = 1;
+	      return;
+	    }
+	
+	    // some default think time
+	    this.think = 1;
+	  }
+	};
+
+/***/ },
+/* 200 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	// Snakes waits on a tile and attacks player when near
+	exports.default = {
+	  name: 'Snake',
+	  score: 100,
+	  damage: 0.25,
+	
+	  update: function update(step) {
+	    var map = this.game.map;
+	
+	    if (this.isDead) return;
+	
+	    if (this.think) {
+	      this.think = this.think - step;
+	      if (this.think > 0) return;
+	    }
+	
+	    // attack?
+	    if (map.nextTo(this, map.player)) {
+	      this.game.publish('attack', this, map.player);
+	      this.think = 2;
+	      return;
+	    }
+	  }
+	};
+
+/***/ },
+/* 201 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = {
+	  name: 'Rat',
+	  score: 200,
+	  damage: 0.20,
+	  think: 1,
+	
+	  update: function update(step) {
+	    var map = this.game.map;
+	
+	    if (this.isDead) return;
+	
+	    // dont bother trying to update a monster that is still 'thinking'
+	    if (this.think) {
+	      this.think = this.think - step;
+	      if (this.think > 0) return;
+	    }
+	
+	    // trapped?
+	    if (this.checkIfTrapped(step)) {
+	      if (this.trappedFor < 2) return;
+	      this.game.publish('explosion', { x: this.x, y: this.y });
+	      this.kill(this.score * 5);
+	      return;
+	    }
+	
+	    // attack?
+	    if (map.nextTo(this, map.player)) {
+	      this.game.publish('attack', this, map.player);
+	      this.think = 0.8;
+	      return;
+	    }
+	
+	    // -- Move Grue--
+	
+	    // Grues find their victims by smell.
+	    // To model this we use pathfinding with a max path length
+	    this.path = map.pathToPlayer(this);
+	    if (this.path.length > 0 && this.path.length < 10) {
+	      console.log('I smell a player', this.path.length);
+	      if (map.tryMove(this, this.path[1].x, this.path[1].y)) {
+	        map.move(this, this.path[1].x, this.path[1].y);
+	      }
+	      this.think = 0.5;
+	      return;
+	    }
+	
+	    // What do rats do when they idle?
+	    if (math.random(0, 100) < 50) {
+	      map.moveRandom(this);
+	      this.think = 0.5;
+	      return;
+	    }
+	
+	    // some default think time
+	    this.think = 0.5;
+	  }
+	};
+
+/***/ },
+/* 202 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -6640,7 +6746,7 @@
 	
 	var _alea2 = _interopRequireDefault(_alea);
 	
-	var _noise = __webpack_require__(199);
+	var _noise = __webpack_require__(203);
 	
 	var _noise2 = _interopRequireDefault(_noise);
 	
@@ -6727,20 +6833,23 @@
 	
 	      // TODO: is it working??
 	      // don't trap monsters
-	      // let trapped = 0
-	      // for (let i=0; i < NEAR_COORDS.length; i++) {
-	      //   let col = tiles[x+NEAR_COORDS[i][0]]
-	      //   if (col) {
-	      //     let tile = col[y+NEAR_COORDS[i][1]]
-	      //     if (tile && (tile === 'B' || tile === 'b')) {
-	      //       trapped += 1
-	      //     }
-	      //   }
-	      // }
-	      // if (trapped == NEAR_COORDS.length) {
-	      //   console.log('skipping pos (trapped)',x,y)
-	      //   continue
-	      // }
+	      var trapped = true;
+	      for (var i = 0; i < _constants.NEAR_COORDS.length; i++) {
+	        var tx = x + _constants.NEAR_COORDS[i][0];
+	        var ty = y + _constants.NEAR_COORDS[i][1];
+	
+	        if (tx > -1 && tx < level.width && ty > -1 && ty < level.height) {
+	          var tile = tiles[tx][ty];
+	          if (!(tile === 'B' || tile === 'b')) {
+	            trapped = false;
+	          }
+	        }
+	      }
+	
+	      if (trapped) {
+	        console.log('skipping pos (trapped)', x, y);
+	        continue;
+	      }
 	
 	      tiles[x][y] = type;
 	      count--;
@@ -6762,7 +6871,7 @@
 	}
 
 /***/ },
-/* 199 */
+/* 203 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -6910,7 +7019,7 @@
 	exports.default = Simplex;
 
 /***/ },
-/* 200 */
+/* 204 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -6923,19 +7032,19 @@
 	
 	var _map = __webpack_require__(193);
 	
-	var _debug = __webpack_require__(201);
+	var _debug = __webpack_require__(205);
 	
 	var _debug2 = _interopRequireDefault(_debug);
 	
-	var _screenshake = __webpack_require__(202);
+	var _screenshake = __webpack_require__(206);
 	
 	var _screenshake2 = _interopRequireDefault(_screenshake);
 	
-	var _hit = __webpack_require__(203);
+	var _hit = __webpack_require__(207);
 	
 	var _hit2 = _interopRequireDefault(_hit);
 	
-	var _score = __webpack_require__(204);
+	var _score = __webpack_require__(208);
 	
 	var _score2 = _interopRequireDefault(_score);
 	
@@ -7120,7 +7229,7 @@
 	    });
 	
 	    this.subscribe('kill', function (monster, score) {
-	      console.log('kill listener', monster.isDead, monster.x, monster.y, _this.map.entityAt(monster.x, monster.y));
+	      console.log('kill listener', monster.isDead, monster.x, monster.y, score, _this.map.entityAt(monster.x, monster.y));
 	      // update player score
 	      _this.score += score;
 	
@@ -7141,7 +7250,7 @@
 	
 	      // add some bonus time (base on possible damage for now)
 	      // TODO: add effect for time bonus
-	      _this.player.timeLeft += 25 * (monster.damage || 0.1);
+	      _this.player.timeLeft += 20 * (monster.damage || 0.1);
 	
 	      // effects
 	      _this.addEffect(_score2.default.create(monster, score));
@@ -7163,8 +7272,10 @@
 	      // decide if it's a hit or miss
 	
 	      // do damage
-	      console.log(monster.name, 'hits', player.name);
-	      player.timeLeft = player.timeLeft * monster.damage;
+	      var damage = _this.levelMaxTime * monster.damage;
+	      player.timeLeft -= damage;
+	
+	      console.log(monster.name, 'hits', player.name, 'damage', damage);
 	
 	      // effects
 	      //TODO: add effect that highlights time damage
@@ -7180,7 +7291,7 @@
 	};
 
 /***/ },
-/* 201 */
+/* 205 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -7320,7 +7431,7 @@
 	};
 
 /***/ },
-/* 202 */
+/* 206 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -7385,7 +7496,7 @@
 	};
 
 /***/ },
-/* 203 */
+/* 207 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -7436,7 +7547,7 @@
 	};
 
 /***/ },
-/* 204 */
+/* 208 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -7493,7 +7604,7 @@
 	};
 
 /***/ },
-/* 205 */
+/* 209 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -7517,7 +7628,7 @@
 	};
 
 /***/ },
-/* 206 */
+/* 210 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7587,7 +7698,7 @@
 	};
 
 /***/ },
-/* 207 */
+/* 211 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -7627,7 +7738,7 @@
 	};
 
 /***/ },
-/* 208 */
+/* 212 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -7657,7 +7768,7 @@
 	}
 
 /***/ },
-/* 209 */
+/* 213 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7711,7 +7822,7 @@
 	};
 
 /***/ },
-/* 210 */
+/* 214 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -7745,6 +7856,7 @@
 	  SPRITES[_entities.ENTITY.ZOMBIE] = 'assets/zombie_01.png';
 	  SPRITES[_entities.ENTITY.GRUE] = 'assets/grue_01.png';
 	  SPRITES[_entities.ENTITY.EGG] = 'assets/egg_01.png';
+	  SPRITES[_entities.ENTITY.RAT] = 'assets/rat_01.png';
 	
 	  monster.sprite = PIXI.Sprite.fromImage(SPRITES[monster.type]);
 	
@@ -7884,7 +7996,7 @@
 	    this.debug = new PIXI.Text('console', { font: '14px MiniSet2', fill: 0xAAAAAA, align: 'left' });
 	    this.debug.position.x = 30 * _constants.TILE_WIDTH + 50;
 	    this.debug.position.y = 10;
-	    this.stage.addChild(this.debug);
+	    //this.stage.addChild(this.debug)
 	
 	    // stats
 	    this.stats = new PIXI.Text('0', { font: '14px MiniSet2', fill: 0x5b6ee1, align: 'left' });
@@ -7995,7 +8107,7 @@
 	};
 
 /***/ },
-/* 211 */
+/* 215 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8112,7 +8224,7 @@
 	};
 
 /***/ },
-/* 212 */
+/* 216 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8162,7 +8274,7 @@
 	};
 
 /***/ },
-/* 213 */
+/* 217 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8214,7 +8326,7 @@
 	};
 
 /***/ },
-/* 214 */
+/* 218 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8224,26 +8336,10 @@
 	});
 	var generated = [{ name: 'Generated 1', box: 0.45, heavyBox: 0, monsters: { 'S': 1, 'G': 0, 'Z': 0 } }, { name: 'Generated 2', box: 0.45, heavyBox: 0.05, monsters: { 'S': 1, 'G': 0, 'Z': 2, 'E': 0 } }, { name: 'Generated 3', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 2, 'E': 0 } }, { name: 'Generated 4', box: 0.45, heavyBox: 0.1, monsters: { 'S': 1, 'G': 1, 'Z': 3, 'E': 0 } }, { name: 'Generated 5', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 2, 'E': 0 } }, { name: 'Generated 6', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 2, 'Z': 3, 'E': 1 } }, { name: 'Generated 7', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 2, 'E': 2 } }, { name: 'Generated 8', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3, 'E': 3 } }, { name: 'Generated 9', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 3, 'Z': 3, 'E': 3 } }, { name: 'Generated 10', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 11', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 12', box: 0.50, heavyBox: 0.1, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 13', box: 0.60, heavyBox: 0.15, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 14', box: 0.60, heavyBox: 0.15, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }, { name: 'Generated 15', box: 0.60, heavyBox: 0.15, monsters: { 'S': 2, 'G': 5, 'Z': 5, 'E': 10 } }];
 	
-	exports.default = [
-	// generated[0],
-	// generated[1],
-	// generated[2],
-	// generated[3],
-	// generated[4],
-	// generated[5],
-	// generated[6],
-	// generated[7],
-	// generated[8],
-	// generated[9],
-	// generated[10],
-	// generated[11],
-	// generated[12],
-	// generated[13],
-	// generated[14],
-	{
+	exports.default = [generated[0], generated[1], generated[2], generated[3], generated[4], generated[5], generated[6], generated[7], generated[8], generated[9], generated[10], generated[11], generated[12], generated[13], generated[14], {
 	  name: 'Level 1',
 	  // max time etc
-	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bB......b....bGGG......\nb.......Z.......bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbBbbb......\n.......b...........B.EB.......\n........b...........b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
+	  map: '\nbbb..bbbbG.bbbbbbb..bbbBB,,,,,\n.......bbbbb...b......B.......\n.....b..bbbb...b....bbbbbbbbbb\nb......bBR.....b....bGGG......\nb...............bbb.bbbbbbbbbb\n.......................b......\n........b.......b.bbBbbb......\n.......b...........B.EB.......\n........b...........b..b......\nb.............b.....@b........\nb.......b......B..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n.......b..............b.......\n.....b..b...........b..b......\nb......b.......b......b.......\nb..............b..............\n      '
 	}, {
 	  name: 'Level 1',
 	  // max time etc
@@ -8259,16 +8355,16 @@
 	}];
 
 /***/ },
-/* 215 */
+/* 219 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(216);
+	var content = __webpack_require__(220);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(218)(content, {});
+	var update = __webpack_require__(222)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -8285,10 +8381,10 @@
 	}
 
 /***/ },
-/* 216 */
+/* 220 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(217)();
+	exports = module.exports = __webpack_require__(221)();
 	// imports
 	
 	
@@ -8299,7 +8395,7 @@
 
 
 /***/ },
-/* 217 */
+/* 221 */
 /***/ function(module, exports) {
 
 	/*
@@ -8355,7 +8451,7 @@
 
 
 /***/ },
-/* 218 */
+/* 222 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
